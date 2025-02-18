@@ -42,8 +42,8 @@ public class Jianpian extends Spider {
     @Override
     public String homeContent(boolean filter) throws Exception {
         List<Class> classes = new ArrayList<>();
-        List<String> typeIds = Arrays.asList("0", "1", "2", "3", "4");
-        List<String> typeNames = Arrays.asList("全部", "电影", "电视剧", "动漫", "综艺");
+        List<String> typeIds = Arrays.asList("2", "3", "4");
+        List<String> typeNames = Arrays.asList("电视剧", "动漫", "综艺");
         for (int i = 0; i < typeIds.size(); i++) classes.add(new Class(typeIds.get(i), typeNames.get(i)));
         return Result.string(classes, Json.parse(OkHttp.string(extend)));
     }
