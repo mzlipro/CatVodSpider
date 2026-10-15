@@ -68,10 +68,8 @@ task makeDanmuJar(type: Jar) {
     archiveFileName = 'danmu.jar'
     destinationDirectory = file("${project.rootDir}/jar")
 
-    from {
-        fileTree(dir: "${buildDir}/intermediates/javac/release") {
-            include '**/classes/**/*.class'
-        }
+    from("${buildDir}/intermediates/javac/release") {
+        include '**/*.class'
     }
 
     exclude '**/R.class'
