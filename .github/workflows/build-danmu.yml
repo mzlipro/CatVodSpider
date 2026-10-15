@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0        # ← 完整克隆，确保拿到最新代码
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -22,21 +22,28 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ====== 验证源代码是否正确 ======
+      # ====== 验证源代码（正确路径）======
       - name: Verify source code
         run: |
+          CONFIG_FILE="app/src/main/java/com/github/catvod/spider/DanmakuConfig.java"
           echo "=== 构建来源信息 ==="
           echo "Branch: $(git branch --show-current)"
           echo "Commit: $(git log -1 --oneline)"
           echo "Date: $(git log -1 --format='%ci')"
           echo ""
+          echo "=== 文件路径: $CONFIG_FILE ==="
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "❌ 文件不存在，搜索实际路径："
+            find . -name "DanmakuConfig.java" -not -path "./.git/*"
+            exit 1
+          fi
           echo "=== 搜索 STYLE_MULTI_GRID ==="
-          if grep -n "STYLE_MULTI_GRID" DanmakuConfig.java; then
+          if grep -n "STYLE_MULTI_GRID" "$CONFIG_FILE"; then
             echo "✅ 源代码包含新增内容"
           else
             echo "❌ 警告：源代码中没有 STYLE_MULTI_GRID！"
-            echo "当前 DanmakuConfig.java 的 STYLE 常量："
-            grep -n "STYLE_" DanmakuConfig.java | head -20
+            echo "该文件中的 STYLE 常量："
+            grep -n "STYLE" "$CONFIG_FILE" | head -20
             exit 1
           fi
 
@@ -50,7 +57,7 @@ jobs:
 
       - name: Configure Gradle
         run: |
-          echo "org.gradle.caching=false" >> gradle.properties   # ← 关闭缓存
+          echo "org.gradle.caching=false" >> gradle.properties
           echo "org.gradle.parallel=true" >> gradle.properties
           echo "org.gradle.daemon=false" >> gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> gradle.properties
@@ -58,34 +65,24 @@ jobs:
       - name: Make Gradlew executable
         run: chmod +x gradlew
 
-      # ====== 关键改动：clean + build ======
       - name: Build danmu.jar
         run: ./gradlew clean assembleRelease --no-daemon --console=plain
 
-      # ====== 验证构建产物 ======
       - name: Verify danmu.jar
         run: |
-          echo "=== 文件信息 ==="
           ls -la jar/danmu.jar
+          echo "MD5: $(md5sum jar/danmu.jar)"
           echo ""
-          echo "=== MD5 ==="
-          md5sum jar/danmu.jar
-          echo ""
-          echo "=== 验证编译产物中是否包含新增代码 ==="
-          mkdir -p /tmp/jar_check
-          cd /tmp/jar_check
-          unzip -o "$GITHUB_WORKSPACE/jar/danmu.jar" "com/github/catvod/spider/DanmakuConfig.class" 2>/dev/null || {
-            echo "尝试用 jar 命令解压..."
-            cd "$GITHUB_WORKSPACE"
-            jar xf jar/danmu.jar com/github/catvod/spider/DanmakuConfig.class
-            cd /tmp/jar_check
-          }
-          if strings "$GITHUB_WORKSPACE/com/github/catvod/spider/DanmakuConfig.class" | grep -q "多格模式"; then
-            echo "✅ 编译产物包含多格模式"
-          else
-            echo "❌ 警告：编译产物中没有多格模式！"
-            strings "$GITHUB_WORKSPACE/com/github/catvod/spider/DanmakuConfig.class" | grep -i "mode\|模式\|STYLE" || true
-            exit 1
+          echo "=== 检查编译产物 ==="
+          mkdir -p /tmp/check && cd /tmp/check
+          jar xf "$GITHUB_WORKSPACE/jar/danmu.jar"
+          CLASS_FILE=$(find . -name "DanmakuConfig.class" | head -1)
+          if [ -n "$CLASS_FILE" ]; then
+            if strings "$CLASS_FILE" | grep "多格模式"; then
+              echo "✅ 编译产物包含多格模式"
+            else
+              echo "❌ 编译产物中没有多格模式！"
+            fi
           fi
 
       - name: Upload danmu.jar
@@ -96,24 +93,24 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # ====== 先删除旧 release，再创建新的 ======
       - name: Delete old release
         uses: actions/github-script@v7
         with:
           script: |
             try {
-              await github.rest.repos.deleteReleaseByOwnerAndRepo({
+              const release = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                release_id: (await github.rest.repos.getReleaseByTag({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  tag: 'latest'
-                })).data.id
+                tag: 'latest'
+              });
+              await github.rest.repos.deleteRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id
               });
               console.log('旧 release 已删除');
             } catch (e) {
-              console.log('没有旧 release 或删除失败，继续创建');
+              console.log('没有旧 release');
             }
             try {
               await github.rest.git.deleteRef({
@@ -123,7 +120,7 @@ jobs:
               });
               console.log('旧 tag 已删除');
             } catch (e) {
-              console.log('没有旧 tag 或删除失败');
+              console.log('没有旧 tag');
             }
 
       - name: Create release
