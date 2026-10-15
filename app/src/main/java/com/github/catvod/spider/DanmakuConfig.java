@@ -13,11 +13,11 @@ import java.util.Set;
  * 弹幕配置实体类
  */
 public class DanmakuConfig {
-    public static final String STYLE_MULTI_GRID = "多格模式";   // ← 新增这一行
     public static final String STYLE_CLASSIC = "经典模式";
     public static final String STYLE_GRID = "网格模式";
     public static final String STYLE_DARK_GRID = "深色网格";
     public static final String STYLE_MODERN_PANEL = "新版面板";
+    public static final String STYLE_MULTI_GRID = "多格模式";   // ← 新增这一行
     public static final int DEFAULT_PROXY_PORT = 5575;
 
     public static final String[] STYLE_OPTIONS = {
