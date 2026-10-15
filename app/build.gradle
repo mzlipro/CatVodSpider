@@ -61,3 +61,21 @@ dependencies {
     implementation 'org.jsoup:jsoup:1.21.2'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
 }
+
+// ========== 构建 danmu.jar ==========
+task makeDanmuJar(type: Jar) {
+    dependsOn 'compileReleaseJavaWithJavac'
+    archiveFileName = 'danmu.jar'
+    destinationDirectory = file("${project.rootDir}/jar")
+
+    from {
+        fileTree(dir: "${buildDir}/intermediates/javac/release") {
+            include '**/classes/**/*.class'
+        }
+    }
+
+    exclude '**/R.class'
+    exclude '**/R$*.class'
+    exclude '**/BuildConfig.class'
+    exclude '**/BuildConfig$*.class'
+}
