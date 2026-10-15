@@ -62,18 +62,43 @@ dependencies {
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
 }
 
-// ========== 构建 danmu.jar ==========
-task makeDanmuJar(type: Jar) {
-    dependsOn 'compileReleaseJavaWithJavac'
-    archiveFileName = 'danmu.jar'
-    destinationDirectory = file("${project.rootDir}/jar")
+// ========== 构建 danmu.jar（打包 classes.dex）==========
+task makeDanmuJar {
+    dependsOn 'assembleRelease'
 
-    from("${buildDir}/intermediates/javac/release") {
-        include '**/*.class'
+    doLast {
+        // 1. 查找编译产出的 classes.dex
+        def classesDex = null
+        def searchRoot = file("${buildDir}/intermediates")
+        searchRoot.eachFileRecurse { f ->
+            if (f.name == 'classes.dex' && classesDex == null && f.absolutePath.contains('release')) {
+                classesDex = f
+            }
+        }
+        if (classesDex == null) {
+            throw new GradleException('classes.dex not found in build intermediates')
+        }
+        println "Source DEX: ${classesDex.absolutePath} (${classesDex.length()} bytes)"
+
+        // 2. 创建 JAR，将 classes.dex 放在根目录
+        def jarFile = file("${project.rootDir}/jar/danmu.jar")
+        jarFile.parentFile?.mkdirs()
+
+        def zos = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(jarFile))
+        try {
+            // META-INF/MANIFEST.MF
+            zos.putNextEntry(new java.util.zip.ZipEntry('META-INF/MANIFEST.MF'))
+            zos.write('Manifest-Version: 1.0\r\n\r\n'.getBytes('UTF-8'))
+            zos.closeEntry()
+
+            // classes.dex（放在 JAR 根目录）
+            zos.putNextEntry(new java.util.zip.ZipEntry('classes.dex'))
+            zos.write(classesDex.bytes)
+            zos.closeEntry()
+        } finally {
+            zos.close()
+        }
+
+        println "danmu.jar created: ${jarFile.length()} bytes"
     }
-
-    exclude '**/R.class'
-    exclude '**/R$*.class'
-    exclude '**/BuildConfig.class'
-    exclude '**/BuildConfig$*.class'
 }
