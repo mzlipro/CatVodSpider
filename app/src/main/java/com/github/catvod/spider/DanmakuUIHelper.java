@@ -2075,13 +2075,24 @@ public class DanmakuUIHelper {
                     LinearLayout tabContainer = new LinearLayout(activity);
                     tabContainer.setOrientation(LinearLayout.HORIZONTAL);
                     tabContainer.setGravity(Gravity.CENTER_VERTICAL);
-                    tabContainer.setPadding(0, dpToPx(activity, 4), 0, dpToPx(activity, 4));
+                    tabContainer.setPadding(dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4));
                     tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
-                    LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 62));
-                    tabContainerParams.setMargins(0, dpToPx(activity, 2), 0, dpToPx(activity, 8));
+                    // ====== 关键：宽度自适应内容，高度缩小 ======
+                    LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 44));
                     tabContainer.setLayoutParams(tabContainerParams);
                     tabContainer.setVisibility(View.GONE);
-                    mainLayout.addView(tabContainer);
+
+                    // ====== 关键：包裹 HorizontalScrollView 支持左右滑动 ======
+                    HorizontalScrollView tabScroll = new HorizontalScrollView(activity);
+                    tabScroll.setHorizontalScrollBarEnabled(false);
+                    tabScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+                    tabScroll.addView(tabContainer);
+                    LinearLayout.LayoutParams tabScrollParams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    tabScrollParams.setMargins(0, dpToPx(activity, 2), 0, dpToPx(activity, 8));
+                    tabScroll.setLayoutParams(tabScrollParams);
+                    mainLayout.addView(tabScroll);
 
                     ScrollView resultScroll = new ScrollView(activity);
                     resultScroll.setBackgroundColor(isTemplate3 ? Color.TRANSPARENT : BACKGROUND_WHITE);
@@ -2291,8 +2302,9 @@ public class DanmakuUIHelper {
             tabBtn.setTag(tabName);
             tabBtn.setPadding(dpToPx(activity, 15), dpToPx(activity, 10), dpToPx(activity, 15), dpToPx(activity, 10));
 
-            LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
-            tabParams.setMargins(dpToPx(activity, 5), 0, dpToPx(activity, 5), 0);
+            LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            tabParams.setMargins(dpToPx(activity, 4), 0, dpToPx(activity, 4), 0);
             tabBtn.setLayoutParams(tabParams);
             tabBtn.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 @Override
@@ -2414,8 +2426,9 @@ public class DanmakuUIHelper {
         for (int i = 0; i < tabs.size(); i++) {
             String tabName = tabs.get(i);
             Button tabBtn = createSearchSourceTabButton(activity, tabName, i == selected, isTemplate3);
-            LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
-            tabParams.setMargins(dpToPx(activity, 5), 0, dpToPx(activity, 5), 0);
+            LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            tabParams.setMargins(dpToPx(activity, 4), 0, dpToPx(activity, 4), 0);
             tabBtn.setLayoutParams(tabParams);
 
             final int targetIndex = i;
@@ -2435,7 +2448,7 @@ public class DanmakuUIHelper {
     private static Button createSearchSourceTabButton(Activity activity, String text, boolean isActive, boolean isTemplate3) {
         Button button = new Button(activity);
         button.setText(text);
-        button.setTextSize(14);
+        button.setTextSize(12);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
         button.setGravity(Gravity.CENTER);
         button.setSingleLine(true);
@@ -2443,7 +2456,7 @@ public class DanmakuUIHelper {
         button.setAllCaps(false);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
-        button.setPadding(dpToPx(activity, 10), 0, dpToPx(activity, 10), 0);
+        button.setPadding(dpToPx(activity, 14), 0, dpToPx(activity, 14), 0);
         button.setTag(Boolean.valueOf(isActive));
         updateSearchSourceTabStyle(button, isActive, isTemplate3, false);
 
@@ -3802,8 +3815,15 @@ public class DanmakuUIHelper {
         resultItem.setFocusableInTouchMode(true);
         resultItem.setClickable(true);
 
-        // ====== 关键改动：显示完整标题，不再简化为数字 ======
-        resultItem.setText(buildResultTitleWithSource(activity, item));
+        // ====== 提取来源+集数：兰香如故(2026)【电视剧】－【qq】兰香如故_01 → 【qq】兰香如故_01 ======
+        String fullTitle = buildResultTitleWithSource(activity, item);
+        String displayText = fullTitle;
+        int sepIdx = fullTitle.lastIndexOf("－");
+        if (sepIdx < 0) sepIdx = fullTitle.lastIndexOf(" - ");
+        if (sepIdx >= 0 && sepIdx + 1 < fullTitle.length()) {
+            displayText = fullTitle.substring(sepIdx + 1).trim();
+        }
+        resultItem.setText(displayText);
         resultItem.setTextSize(12);
         resultItem.setSingleLine(false);            // 允许多行换行
         resultItem.setMaxLines(3);                  // 最多3行
