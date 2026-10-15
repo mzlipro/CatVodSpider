@@ -22,6 +22,7 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.HorizontalScrollView;   // ← 新增这一行
 import android.widget.TextView;
 import com.github.catvod.spider.entity.DanmakuItem;
 import com.github.catvod.spider.danmu.SharedPreferencesService;
