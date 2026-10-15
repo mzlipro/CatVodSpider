@@ -2,6 +2,10 @@ plugins {
     id 'com.android.application'
     id 'ru.cleverpumpkin.proguard-dictionaries-generator'
 }
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError false
+    }
 
 android {
     namespace 'com.github.catvod'
@@ -35,8 +39,6 @@ android {
     }
 
     
-    // 添加 LINT BASLINE 配置
-    abortOnError false
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
