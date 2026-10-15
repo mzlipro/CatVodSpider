@@ -83,7 +83,9 @@ task makeDanmuJar {
         fileTree(dir: classesDir).visit { details ->
             if (!details.isDirectory() && details.file.name.endsWith('.class')) {
                 def path = details.relativePath.pathString
-                if (path.startsWith('com/github/catvod/')) {
+                if (path.startsWith('com/github/catvod/js/')
+        || path.startsWith('com/github/catvod/net/')
+        || path.startsWith('com/github/catvod/spider/')) {
                     classFiles.add(details.file)
                 }
             }
