@@ -36,9 +36,6 @@ android {
 
     
     // 添加 LINT BASLINE 配置
-    lint {
-        baseline = file("lint-baseline.xml")
-    }
     abortOnError false
 
     compileOptions {
