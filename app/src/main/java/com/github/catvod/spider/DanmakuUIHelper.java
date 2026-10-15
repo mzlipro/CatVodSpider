@@ -2080,7 +2080,7 @@ public class DanmakuUIHelper {
                     tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
                     // ====== 关键：宽度自适应内容，高度缩小 ======
                     LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 36));
+                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 27)); //来源框高度
                     tabContainer.setLayoutParams(tabContainerParams);
                     tabContainer.setVisibility(View.GONE);
 
@@ -2313,12 +2313,12 @@ public class DanmakuUIHelper {
                     Object tag = v.getTag();
                     boolean active = tag instanceof Boolean && (Boolean) tag;
                     if (isTemplate3) {
-                        ((Button) v).setTextColor(DARK_TEXT_PRIMARY);
-                        v.setBackground(createRoundedTransparentDrawable(hasFocus ? DARK_PRIMARY_DARK :
+                        ((Button) v).setTextColor(hasFocus ? Color.WHITE : DARK_TEXT_PRIMARY);
+                        v.setBackground(createRoundedTransparentDrawable(hasFocus ? 0xFFFF6B00 :
                                 (active ? DARK_PRIMARY_COLOR : DARK_INACTIVE)));
                     } else {
                         ((Button) v).setTextColor(Color.WHITE);
-                        v.setBackground(createRoundedBackgroundDrawable(hasFocus ? PRIMARY_DARK :
+                        v.setBackground(createRoundedBackgroundDrawable(hasFocus ? 0xFFFF6B00 :
                                 (active ? PRIMARY_COLOR : GRAY_INACTIVE)));
                     }
                 }
@@ -2350,6 +2350,16 @@ public class DanmakuUIHelper {
         } else {
             button.setBackground(createRoundedBackgroundDrawable(isActive ? PRIMARY_COLOR : GRAY_INACTIVE));
             button.setTextColor(Color.WHITE);
+        }
+        // 如果当前有焦点，焦点橙色优先显示
+        if (button.hasFocus()) {
+            if (isTemplate3) {
+                button.setBackground(createRoundedTransparentDrawable(0xFFFF6B00));
+                button.setTextColor(Color.WHITE);
+            } else {
+                button.setBackground(createRoundedBackgroundDrawable(0xFFFF6B00));
+                button.setTextColor(Color.WHITE);
+            }
         }
     }
 
@@ -2449,7 +2459,7 @@ public class DanmakuUIHelper {
     private static Button createSearchSourceTabButton(Activity activity, String text, boolean isActive, boolean isTemplate3) {
         Button button = new Button(activity);
         button.setText(text);
-        button.setTextSize(11);
+        button.setTextSize(7); //来源字体大小
         button.setTypeface(null, android.graphics.Typeface.BOLD);
         button.setGravity(Gravity.CENTER);
         button.setSingleLine(true);
@@ -2457,7 +2467,7 @@ public class DanmakuUIHelper {
         button.setAllCaps(false);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
-        button.setPadding(dpToPx(activity, 10), 0, dpToPx(activity, 10), 0);
+        button.setPadding(dpToPx(activity, 7), 0, dpToPx(activity, 7), 0); //来源边距
         button.setTag(Boolean.valueOf(isActive));
         updateSearchSourceTabStyle(button, isActive, isTemplate3, false);
 
