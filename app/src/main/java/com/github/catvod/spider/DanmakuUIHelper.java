@@ -2936,12 +2936,12 @@ public class DanmakuUIHelper {
                             gridLayout.setColumnCount(columns);
                             gridLayout.setRowCount(GridLayout.UNDEFINED); // 行数自动计算
                             gridLayout.setUseDefaultMargins(false);
-                            gridLayout.setPadding(dpToPx(activity, 20), dpToPx(activity, 12),
-                                    dpToPx(activity, 20), dpToPx(activity, 12));
+                            gridLayout.setPadding(dpToPx(activity, 4), dpToPx(activity, 8),
+                                    dpToPx(activity, 4), dpToPx(activity, 8));
                             gridLayout.setBackgroundColor(Color.TRANSPARENT);
                             LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                            gridParams.setMargins(dpToPx(activity, 36), 0, dpToPx(activity, 36), dpToPx(activity, 8));
+                            gridParams.setMargins(dpToPx(activity, 8), 0, dpToPx(activity, 8), 0);
                             gridLayout.setLayoutParams(gridParams);
 
                             // 为每个剧集创建网格按钮
@@ -3816,13 +3816,17 @@ public class DanmakuUIHelper {
         resultItem.setFocusableInTouchMode(true);
         resultItem.setClickable(true);
 
-        // ====== 提取来源+集数：兰香如故(2026)【电视剧】－【qq】兰香如故_01 → 【qq】兰香如故_01 ======
+        // ====== 提取来源+集数 ======
         String fullTitle = buildResultTitleWithSource(activity, item);
         String displayText = fullTitle;
         int sepIdx = fullTitle.lastIndexOf("－");
-        if (sepIdx < 0) sepIdx = fullTitle.lastIndexOf(" - ");
+        if (sepIdx < 0) sepIdx = fullTitle.lastIndexOf("-");
         if (sepIdx >= 0 && sepIdx + 1 < fullTitle.length()) {
             displayText = fullTitle.substring(sepIdx + 1).trim();
+        }
+        // 去掉可能残留的开头横线和空格
+        while (displayText.startsWith("-") || displayText.startsWith("－") || displayText.startsWith(" ")) {
+            displayText = displayText.substring(1).trim();
         }
         resultItem.setText(displayText);
         resultItem.setTextSize(12);
