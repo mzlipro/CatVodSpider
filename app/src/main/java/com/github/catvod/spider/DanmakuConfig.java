@@ -13,6 +13,7 @@ import java.util.Set;
  * 弹幕配置实体类
  */
 public class DanmakuConfig {
+    public static final String STYLE_MULTI_GRID = "多格模式";   // ← 新增这一行
     public static final String STYLE_CLASSIC = "经典模式";
     public static final String STYLE_GRID = "网格模式";
     public static final String STYLE_DARK_GRID = "深色网格";
@@ -20,6 +21,7 @@ public class DanmakuConfig {
     public static final int DEFAULT_PROXY_PORT = 5575;
 
     public static final String[] STYLE_OPTIONS = {
+            STYLE_MULTI_GRID,       // ← 新增，放第一位
             STYLE_CLASSIC,
             STYLE_GRID,
             STYLE_DARK_GRID,
@@ -79,7 +81,7 @@ public class DanmakuConfig {
         lpHeight = 0.85f;
         lpAlpha = 0.9f;
         autoPushEnabled = false;
-        danmakuStyle = STYLE_CLASSIC;
+        danmakuStyle = STYLE_MULTI_GRID;
         silentMode = true;
         danmakuTimeOffsetMs = 0;
         proxyType = 0;
@@ -377,6 +379,11 @@ public class DanmakuConfig {
         return STYLE_MODERN_PANEL.equals(getDanmakuStyle());
     }
 
+    // ↓↓↓ 新增这个方法 ↓↓↓
+    public boolean isMultiGridDanmakuStyle() {
+        return STYLE_MULTI_GRID.equals(getDanmakuStyle());
+    }
+
     public static String normalizeDanmakuStyle(String danmakuStyle) {
         if (danmakuStyle == null) return STYLE_CLASSIC;
         String style = danmakuStyle.trim();
@@ -427,6 +434,17 @@ public class DanmakuConfig {
                 || "template4".equalsIgnoreCase(style)
                 || "template_4".equalsIgnoreCase(style)) {
             return STYLE_MODERN_PANEL;
+        }
+
+        // ↓↓↓ 新增这段 ↓↓↓
+        if (STYLE_MULTI_GRID.equals(style)
+                || "多格".equals(style)
+                || "多格模式".equals(style)
+                || "multi_grid".equalsIgnoreCase(style)
+                || "multigrid".equalsIgnoreCase(style)
+                || "template5".equalsIgnoreCase(style)
+                || "template_5".equalsIgnoreCase(style)) {
+            return STYLE_MULTI_GRID;
         }
 
         return STYLE_CLASSIC;
