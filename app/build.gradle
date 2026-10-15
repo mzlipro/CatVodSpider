@@ -2,10 +2,6 @@ plugins {
     id 'com.android.application'
     id 'ru.cleverpumpkin.proguard-dictionaries-generator'
 }
-    lint {
-        baseline = file("lint-baseline.xml")
-        abortOnError false
-    }
 
 android {
     namespace 'com.github.catvod'
@@ -38,8 +34,6 @@ android {
         }
     }
 
-    
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -49,6 +43,11 @@ android {
         resolutionStrategy {
             force 'com.squareup.okhttp3:okhttp:' + okhttpVersion
         }
+    }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError false
     }
 }
 
@@ -62,8 +61,3 @@ dependencies {
     implementation 'org.jsoup:jsoup:1.21.2'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
 }
-
-    lint {
-        baseline = file("lint-baseline.xml")
-        abortOnError false
-    }
