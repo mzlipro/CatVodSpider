@@ -22,7 +22,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ====== 验证源代码（正确路径）======
+      # ====== 验证源代码 ======
       - name: Verify source code
         run: |
           CONFIG_FILE="app/src/main/java/com/github/catvod/spider/DanmakuConfig.java"
@@ -65,24 +65,36 @@ jobs:
       - name: Make Gradlew executable
         run: chmod +x gradlew
 
+      # ====== 构建 JAR（使用 makeDanmuJar）======
       - name: Build danmu.jar
-        run: ./gradlew clean assembleRelease --no-daemon --console=plain
+        run: ./gradlew clean makeDanmuJar --no-daemon --console=plain
 
+      # ====== 验证构建产物 ======
       - name: Verify danmu.jar
         run: |
+          echo "=== 文件信息 ==="
           ls -la jar/danmu.jar
-          echo "MD5: $(md5sum jar/danmu.jar)"
+          echo ""
+          echo "=== MD5 ==="
+          md5sum jar/danmu.jar
           echo ""
           echo "=== 检查编译产物 ==="
           mkdir -p /tmp/check && cd /tmp/check
           jar xf "$GITHUB_WORKSPACE/jar/danmu.jar"
           CLASS_FILE=$(find . -name "DanmakuConfig.class" | head -1)
           if [ -n "$CLASS_FILE" ]; then
+            echo "找到: $CLASS_FILE"
             if strings "$CLASS_FILE" | grep "多格模式"; then
               echo "✅ 编译产物包含多格模式"
             else
               echo "❌ 编译产物中没有多格模式！"
+              echo "class 中的相关字符串："
+              strings "$CLASS_FILE" | grep -i "模式\|STYLE" || true
             fi
+          else
+            echo "❌ JAR 中没有 DanmakuConfig.class"
+            echo "JAR 内容："
+            find . -type f | head -30
           fi
 
       - name: Upload danmu.jar
@@ -93,6 +105,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # ====== 删除旧 release ======
       - name: Delete old release
         uses: actions/github-script@v7
         with:
@@ -123,6 +136,7 @@ jobs:
               console.log('没有旧 tag');
             }
 
+      # ====== 创建新 release ======
       - name: Create release
         if: success()
         uses: softprops/action-gh-release@v1
