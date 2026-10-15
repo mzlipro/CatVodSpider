@@ -2080,7 +2080,7 @@ public class DanmakuUIHelper {
                     tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
                     // ====== 关键：宽度自适应内容，高度缩小 ======
                     LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 44));
+                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 36));
                     tabContainer.setLayoutParams(tabContainerParams);
                     tabContainer.setVisibility(View.GONE);
 
@@ -2449,7 +2449,7 @@ public class DanmakuUIHelper {
     private static Button createSearchSourceTabButton(Activity activity, String text, boolean isActive, boolean isTemplate3) {
         Button button = new Button(activity);
         button.setText(text);
-        button.setTextSize(12);
+        button.setTextSize(11);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
         button.setGravity(Gravity.CENTER);
         button.setSingleLine(true);
@@ -2457,7 +2457,7 @@ public class DanmakuUIHelper {
         button.setAllCaps(false);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
-        button.setPadding(dpToPx(activity, 14), 0, dpToPx(activity, 14), 0);
+        button.setPadding(dpToPx(activity, 10), 0, dpToPx(activity, 10), 0);
         button.setTag(Boolean.valueOf(isActive));
         updateSearchSourceTabStyle(button, isActive, isTemplate3, false);
 
@@ -2475,11 +2475,13 @@ public class DanmakuUIHelper {
     private static void updateSearchSourceTabStyle(Button button, boolean isActive, boolean isTemplate3, boolean hasFocus) {
         int color;
         if (isTemplate3) {
-            color = hasFocus ? DARK_PRIMARY_DARK : (isActive ? DARK_PRIMARY_COLOR : DARK_INACTIVE);
-            button.setTextColor(DARK_TEXT_PRIMARY);
+            // 深色模式：焦点橙色，选中蓝色，未选灰色
+            color = hasFocus ? 0xFFFF6B00 : (isActive ? DARK_PRIMARY_COLOR : DARK_INACTIVE);
+            button.setTextColor(hasFocus ? Color.WHITE : DARK_TEXT_PRIMARY);
             button.setBackground(createRoundedTransparentDrawable(color));
         } else {
-            color = hasFocus ? PRIMARY_DARK : (isActive ? PRIMARY_COLOR : GRAY_INACTIVE);
+            // 浅色模式：焦点橙色，选中蓝色，未选灰色
+            color = hasFocus ? 0xFFFF6B00 : (isActive ? PRIMARY_COLOR : GRAY_INACTIVE);
             button.setTextColor(Color.WHITE);
             button.setBackground(createRoundedBackgroundDrawable(color));
         }
@@ -2727,12 +2729,12 @@ public class DanmakuUIHelper {
     private static void updateSearchSourceChoiceStyle(Button button, boolean isActive, boolean isTemplate3, boolean hasFocus) {
         int color;
         if (isTemplate3) {
-            color = hasFocus ? DARK_PRIMARY_DARK : (isActive ? DARK_PRIMARY_COLOR : DARK_BG_TERTIARY);
-            button.setTextColor(DARK_TEXT_PRIMARY);
+            color = hasFocus ? 0xFFFF6B00 : (isActive ? DARK_PRIMARY_COLOR : DARK_BG_TERTIARY);
+            button.setTextColor(hasFocus ? Color.WHITE : DARK_TEXT_PRIMARY);
             button.setBackground(createRoundedTransparentDrawable(color));
         } else {
-            color = hasFocus ? PRIMARY_DARK : (isActive ? PRIMARY_COLOR : 0xFFE8E8E8);
-            button.setTextColor(isActive || hasFocus ? Color.WHITE : TEXT_PRIMARY);
+            color = hasFocus ? 0xFFFF6B00 : (isActive ? PRIMARY_COLOR : 0xFFE8E8E8);
+            button.setTextColor(hasFocus ? Color.WHITE : (isActive ? Color.WHITE : TEXT_PRIMARY));
             button.setBackground(createRoundedBackgroundDrawable(color));
         }
     }
@@ -2936,12 +2938,11 @@ public class DanmakuUIHelper {
                             gridLayout.setColumnCount(columns);
                             gridLayout.setRowCount(GridLayout.UNDEFINED); // 行数自动计算
                             gridLayout.setUseDefaultMargins(false);
-                            gridLayout.setPadding(dpToPx(activity, 4), dpToPx(activity, 8),
-                                    dpToPx(activity, 4), dpToPx(activity, 8));
+                            gridLayout.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 8));
                             gridLayout.setBackgroundColor(Color.TRANSPARENT);
                             LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                            gridParams.setMargins(dpToPx(activity, 8), 0, dpToPx(activity, 8), 0);
+                            gridParams.setMargins(0, 0, 0, 0);
                             gridLayout.setLayoutParams(gridParams);
 
                             // 为每个剧集创建网格按钮
@@ -3894,16 +3895,19 @@ public class DanmakuUIHelper {
     }
     
     /**
-     * 多格模式按钮样式
+     * 多格模式按钮样式 - 焦点橙色，推送中绿色，普通灰色
      */
     private static void applyMultiGridResultStyle(Button button, boolean highlighted, boolean focused) {
         if (focused) {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_DARK, 3));
-            button.setTextColor(TERTIARY_DARK);
+            // 移动焦点：橙色边框
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFFFF3E0, 0xFFFF6B00, 3));
+            button.setTextColor(0xFFE65100);
         } else if (highlighted) {
+            // 正在推送：绿色
             button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_COLOR, 2));
             button.setTextColor(0xFF1F7A3A);
         } else {
+            // 普通状态：灰色
             button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFF0F0F0, 0xFFD6D6D6, 1));
             button.setTextColor(TEXT_PRIMARY);
         }
