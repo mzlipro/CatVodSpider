@@ -2818,7 +2818,8 @@ public class DanmakuUIHelper {
 
         DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
         boolean isTemplate3 = config.isDarkGridDanmakuStyle();
-        boolean useGrid = config.isGridDanmakuStyle();
+        boolean isMultiGrid = config.isMultiGridDanmakuStyle();          // ← 新增
+        boolean useGrid = config.isGridDanmakuStyle() || isMultiGrid;    // ← 多格模式也走网格
 
         if (useGrid) {
             // 使用网格布局
@@ -2917,7 +2918,7 @@ public class DanmakuUIHelper {
                             DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
                             int screenWidthPx = displayMetrics.widthPixels;
                             int screenWidthDp = (int) (screenWidthPx / displayMetrics.density);
-                            int columns = Math.max(3, screenWidthDp / 120); // 每列约120dp
+                            int columns = isMultiGrid ? 3 : Math.max(3, screenWidthDp / 120); // 多格模式固定3列
                             gridLayout.setColumnCount(columns);
                             gridLayout.setRowCount(GridLayout.UNDEFINED); // 行数自动计算
                             gridLayout.setUseDefaultMargins(false);
@@ -2931,10 +2932,16 @@ public class DanmakuUIHelper {
 
                             // 为每个剧集创建网格按钮
                             for (DanmakuItem item : animeItems) {
-                                Button gridItem = isTemplate3 ? createDarkGridResultButton(activity, item, dialog) : createGridResultButton(activity, item, dialog);
+                                Button gridItem;
+                                if (isMultiGrid) {
+                                    gridItem = createMultiGridResultButton(activity, item, dialog);  // ← 多格模式专用
+                                } else if (isTemplate3) {
+                                    gridItem = createDarkGridResultButton(activity, item, dialog);
+                                } else {
+                                    gridItem = createGridResultButton(activity, item, dialog);
+                                }
                                 gridLayout.addView(gridItem);
                             }
-
                             // 将网格布局添加到分组按钮后面
                             resultContainer.addView(gridLayout, groupBtnIndex + 1);
 
@@ -3784,6 +3791,108 @@ public class DanmakuUIHelper {
         });
 
         return button;
+    }
+    
+    /**
+     * 多格模式专用按钮：一行3个，文字可换行
+     */
+    private static Button createMultiGridResultButton(Activity activity, DanmakuItem item, AlertDialog dialog) {
+        Button resultItem = new Button(activity);
+        resultItem.setFocusable(true);
+        resultItem.setFocusableInTouchMode(true);
+        resultItem.setClickable(true);
+    
+        // 提取显示文本（集数）
+        String displayText = DanmakuScanner.extractEpisodeNum(item.epTitle);
+        if (TextUtils.isEmpty(displayText)) {
+            String[] parts = item.epTitle != null ? item.epTitle.split(" ") : new String[0];
+            if (parts.length > 1) {
+                displayText = parts[1];
+            } else if (parts.length > 0) {
+                displayText = parts[0];
+            } else {
+                displayText = item.epTitle != null ? item.epTitle : "未知";
+            }
+        }
+    
+        // ====== 关键：允许多行换行 ======
+        resultItem.setText(displayText);
+        resultItem.setTextSize(13);
+        resultItem.setSingleLine(false);            // ← 不限制单行
+        resultItem.setMaxLines(3);                  // ← 最多3行，可换行
+        resultItem.setEllipsize(TextUtils.TruncateAt.END);
+        resultItem.setGravity(Gravity.CENTER);      // ← 居中显示
+    
+        int padding = dpToPx(activity, 8);
+        resultItem.setPadding(padding, padding, padding, padding);
+    
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            resultItem.setTooltipText(buildResultTitleWithSource(activity, item));
+        }
+    
+        // 样式：高亮/普通
+        String currentDanmakuUrl = item.getDanmakuUrl();
+        boolean isHighlighted = currentDanmakuUrl != null
+                && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
+        applyMultiGridResultStyle(resultItem, isHighlighted, false);
+    
+        // 布局参数：一行3个
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.height = dpToPx(activity, 64);  // 固定高度，让文字有换行空间
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            params.width = 0;
+            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        } else {
+            params.width = dpToPx(activity, 100);
+        }
+        int margin = dpToPx(activity, 6);
+        params.setMargins(margin, margin, margin, margin);
+        resultItem.setLayoutParams(params);
+        resultItem.setTag(item);
+    
+        // 焦点效果
+        resultItem.setOnFocusChangeListener((v, hasFocus) -> {
+            DanmakuItem tagged = (DanmakuItem) v.getTag();
+            boolean highlight = tagged.getDanmakuUrl() != null
+                    && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
+            applyMultiGridResultStyle((Button) v, highlight, hasFocus);
+            v.setScaleX(hasFocus ? 1.05f : 1.0f);
+            v.setScaleY(hasFocus ? 1.05f : 1.0f);
+        });
+    
+        // 点击
+        resultItem.setOnClickListener(v -> {
+            DanmakuItem selected = (DanmakuItem) v.getTag();
+            DanmakuSpider.recordDanmakuUrl(selected, false);
+            LeoDanmakuService.pushDanmakuDirect(selected, activity, false);
+            dialog.dismiss();
+        });
+    
+        // 长按显示完整标题
+        resultItem.setOnLongClickListener(v -> {
+            DanmakuItem tagged = (DanmakuItem) v.getTag();
+            Utils.safeShowToast(activity, buildResultTitleWithSource(activity, tagged), true);
+            return true;
+        });
+    
+        return resultItem;
+    }
+    
+    /**
+     * 多格模式按钮样式
+     */
+    private static void applyMultiGridResultStyle(Button button, boolean highlighted, boolean focused) {
+        if (focused) {
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_DARK, 4));
+            button.setTextColor(TERTIARY_DARK);
+        } else if (highlighted) {
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_COLOR, 3));
+            button.setTextColor(0xFF1F7A3A);
+        } else {
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFF0F0F0, 0xFFD6D6D6, 2));
+            button.setTextColor(TEXT_PRIMARY);
+        }
     }
 
     // 颜色加深辅助方法
