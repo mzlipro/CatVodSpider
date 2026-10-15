@@ -3794,51 +3794,40 @@ public class DanmakuUIHelper {
     }
     
     /**
-     * 多格模式专用按钮：一行3个，文字可换行
+     * 多格模式专用按钮：一行3个，文字可换行，显示完整标题
      */
     private static Button createMultiGridResultButton(Activity activity, DanmakuItem item, AlertDialog dialog) {
         Button resultItem = new Button(activity);
         resultItem.setFocusable(true);
         resultItem.setFocusableInTouchMode(true);
         resultItem.setClickable(true);
-    
-        // 提取显示文本（集数）
-        String displayText = DanmakuScanner.extractEpisodeNum(item.epTitle);
-        if (TextUtils.isEmpty(displayText)) {
-            String[] parts = item.epTitle != null ? item.epTitle.split(" ") : new String[0];
-            if (parts.length > 1) {
-                displayText = parts[1];
-            } else if (parts.length > 0) {
-                displayText = parts[0];
-            } else {
-                displayText = item.epTitle != null ? item.epTitle : "未知";
-            }
-        }
-    
-        // ====== 关键：允许多行换行 ======
-        resultItem.setText(displayText);
-        resultItem.setTextSize(13);
-        resultItem.setSingleLine(false);            // ← 不限制单行
-        resultItem.setMaxLines(3);                  // ← 最多3行，可换行
+
+        // ====== 关键改动：显示完整标题，不再简化为数字 ======
+        resultItem.setText(buildResultTitleWithSource(activity, item));
+        resultItem.setTextSize(12);
+        resultItem.setSingleLine(false);            // 允许多行换行
+        resultItem.setMaxLines(3);                  // 最多3行
         resultItem.setEllipsize(TextUtils.TruncateAt.END);
-        resultItem.setGravity(Gravity.CENTER);      // ← 居中显示
-    
-        int padding = dpToPx(activity, 8);
-        resultItem.setPadding(padding, padding, padding, padding);
-    
+        resultItem.setGravity(Gravity.CENTER);      // 居中显示
+
+        // ====== 关键改动：缩小内边距 ======
+        int paddingH = dpToPx(activity, 6);
+        int paddingV = dpToPx(activity, 6);
+        resultItem.setPadding(paddingH, paddingV, paddingH, paddingV);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             resultItem.setTooltipText(buildResultTitleWithSource(activity, item));
         }
-    
+
         // 样式：高亮/普通
         String currentDanmakuUrl = item.getDanmakuUrl();
         boolean isHighlighted = currentDanmakuUrl != null
                 && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
         applyMultiGridResultStyle(resultItem, isHighlighted, false);
-    
-        // 布局参数：一行3个
+
+        // ====== 关键改动：高度自适应，不再固定64dp ======
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.height = dpToPx(activity, 64);  // 固定高度，让文字有换行空间
+        params.height = GridLayout.LayoutParams.WRAP_CONTENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             params.width = 0;
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
@@ -3846,21 +3835,21 @@ public class DanmakuUIHelper {
         } else {
             params.width = dpToPx(activity, 100);
         }
-        int margin = dpToPx(activity, 6);
+        int margin = dpToPx(activity, 4);
         params.setMargins(margin, margin, margin, margin);
         resultItem.setLayoutParams(params);
         resultItem.setTag(item);
-    
+
         // 焦点效果
         resultItem.setOnFocusChangeListener((v, hasFocus) -> {
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
             applyMultiGridResultStyle((Button) v, highlight, hasFocus);
-            v.setScaleX(hasFocus ? 1.05f : 1.0f);
-            v.setScaleY(hasFocus ? 1.05f : 1.0f);
+            v.setScaleX(hasFocus ? 1.03f : 1.0f);
+            v.setScaleY(hasFocus ? 1.03f : 1.0f);
         });
-    
+
         // 点击
         resultItem.setOnClickListener(v -> {
             DanmakuItem selected = (DanmakuItem) v.getTag();
@@ -3868,14 +3857,14 @@ public class DanmakuUIHelper {
             LeoDanmakuService.pushDanmakuDirect(selected, activity, false);
             dialog.dismiss();
         });
-    
+
         // 长按显示完整标题
         resultItem.setOnLongClickListener(v -> {
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             Utils.safeShowToast(activity, buildResultTitleWithSource(activity, tagged), true);
             return true;
         });
-    
+
         return resultItem;
     }
     
@@ -3884,13 +3873,13 @@ public class DanmakuUIHelper {
      */
     private static void applyMultiGridResultStyle(Button button, boolean highlighted, boolean focused) {
         if (focused) {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_DARK, 4));
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_DARK, 3));
             button.setTextColor(TERTIARY_DARK);
         } else if (highlighted) {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_COLOR, 3));
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_COLOR, 2));
             button.setTextColor(0xFF1F7A3A);
         } else {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFF0F0F0, 0xFFD6D6D6, 2));
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFF0F0F0, 0xFFD6D6D6, 1));
             button.setTextColor(TEXT_PRIMARY);
         }
     }
