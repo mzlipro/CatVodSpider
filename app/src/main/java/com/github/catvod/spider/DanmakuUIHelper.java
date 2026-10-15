@@ -1479,6 +1479,7 @@ public class DanmakuUIHelper {
         if (DanmakuConfig.STYLE_GRID.equals(style)) return style + "（原模板二）";
         if (DanmakuConfig.STYLE_DARK_GRID.equals(style)) return style + "（原模板三）";
         if (DanmakuConfig.STYLE_MODERN_PANEL.equals(style)) return style + "（原模板四）";
+        if (DanmakuConfig.STYLE_MULTI_GRID.equals(style)) return style + "（新模板）";  // ← 新增
         return DanmakuConfig.normalizeDanmakuStyle(style);
     }
 
