@@ -2133,22 +2133,21 @@ public class DanmakuUIHelper {
                     mainLayout.addView(resultScroll);
     
                     // ====== 所有子 View 添加完毕后，才决定用什么容器 setView ======
-                    if (isLiquid) {
                         // 真液态玻璃模式
+                    if (isLiquid) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
                         liquidRoot.setGlassAlpha(0.55f);
                         liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-    
+                    
+                        // mainLayout 不能有自己的背景色，否则直角会溢出
+                        mainLayout.setBackgroundColor(Color.TRANSPARENT);  // ← 确保这行存在
+                    
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT);
                         liquidRoot.addView(mainLayout, wrapParams);
                         builder.setView(liquidRoot);
-                    } else {
-                        mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
-                        builder.setView(mainLayout);
                     }
     
                     final AlertDialog dialog = builder.create();
