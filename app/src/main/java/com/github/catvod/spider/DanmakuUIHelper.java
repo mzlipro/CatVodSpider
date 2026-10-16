@@ -270,8 +270,8 @@ public class DanmakuUIHelper {
                     mainLayout.addView(btnLayout);
 
                     // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
+                    boolean isLiquidMode1 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                    if (isLiquidMode1) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
                         liquidRoot.setGlassAlpha(0.55f);
@@ -284,16 +284,12 @@ public class DanmakuUIHelper {
                     } else {
                         builder.setView(mainLayout);
                     }
-
                     AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
+                    if (isLiquidMode1) {
                         applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
+                        if (dialog.getWindow() != null)
                             dialog.getWindow().setBackgroundDrawable(
                                     new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
                     }
                     dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
                             dpToPx(activity, 600)); // 设置固定高度
@@ -436,7 +432,28 @@ public class DanmakuUIHelper {
                 bottomLayout.addView(closeBtn, new LinearLayout.LayoutParams(0, dpToPx(activity, 44), 1));
                 mainLayout.addView(bottomLayout);
 
-                AlertDialog dialog = builder.setView(mainLayout).create();
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidMode2 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidMode2) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
+                AlertDialog dialog = builder.create();
+                if (isLiquidMode2) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 final Runnable[] refresh = new Runnable[1];
                 refresh[0] = new Runnable() {
@@ -751,32 +768,28 @@ public class DanmakuUIHelper {
                 bottomLayout.addView(closeBtn, new LinearLayout.LayoutParams(0, dpToPx(activity, 44), 1));
                 mainLayout.addView(bottomLayout);
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidMode3 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidMode3) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
+                AlertDialog dialog = builder.create();
+                if (isLiquidMode3) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 final Runnable[] refresh = new Runnable[1];
                 refresh[0] = new Runnable() {
@@ -1171,32 +1184,28 @@ public class DanmakuUIHelper {
 
                 mainLayout.addView(btnLayout);
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidMode4 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidMode4) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
+                AlertDialog dialog = builder.create();
+                if (isLiquidMode4) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 saveBtn.setOnClickListener(v -> {
                     try {
@@ -1320,32 +1329,28 @@ public class DanmakuUIHelper {
                 btnLayout.addView(cancelBtn);
                 mainLayout.addView(btnLayout);
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidMode5 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidMode5) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
+                AlertDialog dialog = builder.create();
+                if (isLiquidMode5) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 saveBtn.setOnClickListener(v -> {
                     try {
@@ -1472,32 +1477,28 @@ public class DanmakuUIHelper {
                 btnLayout.addView(cancelBtn);
                 mainLayout.addView(btnLayout);
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidMode6 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidMode6) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
+                AlertDialog dialog = builder.create();
+                if (isLiquidMode6) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 saveBtn.setOnClickListener(v -> {
                     try {
@@ -1530,6 +1531,7 @@ public class DanmakuUIHelper {
         });
     }
 
+    public static void showDanjava
     public static void showDanmakuStyleDialog(Context ctx) {
         if (!(ctx instanceof Activity)) {
             DanmakuSpider.log("错误：Context不是Activity");
@@ -1567,8 +1569,31 @@ public class DanmakuUIHelper {
                 DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
                 String[] styles = DanmakuConfig.STYLE_OPTIONS;
                 String currentStyle = config.getDanmakuStyle();
-                
+
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidMode7 = config.isLiquidDanmakuStyle();
+                if (isLiquidMode7) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
+
                 AlertDialog dialog = builder.create();
+
+                if (isLiquidMode7) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 for (String style : styles) {
                     Button styleBtn = createStyledButton(activity, buildDanmakuStyleOptionText(style),
@@ -1587,33 +1612,6 @@ public class DanmakuUIHelper {
                     });
                 }
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
-                dialog.setView(mainLayout);
                 safeShowDialog(activity, dialog);
 
             } catch (Exception e) {
@@ -2019,32 +2017,8 @@ public class DanmakuUIHelper {
                 btnLayout.addView(closeButton);
                 mainLayout.addView(btnLayout);
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
+                builder.setView(mainLayout);
+                AlertDialog dialog = builder.create();
 
                 // 设置对话框最大高度为屏幕高度的70%
                 dialog.setOnShowListener(d -> {
@@ -3881,32 +3855,8 @@ public class DanmakuUIHelper {
                 urlView.setPadding(0, dpToPx(activity, 10), 0, 0);
                 mainLayout.addView(urlView);
 
-                    // ====== 液态玻璃包装 ======
-                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    if (config.isLiquidDanmakuStyle()) {
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-                        builder.setView(liquidRoot);
-                    } else {
-                        builder.setView(mainLayout);
-                    }
-
-                    AlertDialog dialog = builder.create();
-
-                    // ====== 液态模式：透明窗口 + 真实模糊 ======
-                    if (config.isLiquidDanmakuStyle()) {
-                        applyRealBlur(dialog);
-                        if (dialog.getWindow() != null) {
-                            dialog.getWindow().setBackgroundDrawable(
-                                    new android.graphics.drawable.ColorDrawable(0x00000000));
-                        }
-                    }
+                builder.setView(mainLayout);
+                AlertDialog dialog = builder.create();
 
                 new Thread(() -> {
                     try {
