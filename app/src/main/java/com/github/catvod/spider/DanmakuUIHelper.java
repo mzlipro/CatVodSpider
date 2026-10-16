@@ -22,6 +22,7 @@ import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.content.DialogInterface;
 import android.widget.ScrollView;
 import android.widget.HorizontalScrollView;   // ← 新增这一行
 import android.widget.TextView;
@@ -4229,6 +4230,124 @@ public class DanmakuUIHelper {
         bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
         bg.setStroke(dpToPx(ctx, strokeWidth), strokeColor | 0xFF000000);
         return bg;
+    }
+    
+    /**
+     * 显示带液态玻璃效果的通用菜单对话框
+     * 非液态模式时使用系统默认菜单
+     */
+    public static void showStyledMenuDialog(Activity activity, String title,
+                                            String[] options,
+                                            DialogInterface.OnClickListener listener) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+
+        DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
+        boolean isLiquid = config.isLiquidDanmakuStyle();
+
+        // ====== 非液态模式：使用系统默认菜单 ======
+        if (!isLiquid) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+            builder.setTitle(title);
+            builder.setItems(options, listener);
+            builder.setNegativeButton("取消", null);
+            try {
+                builder.show();
+            } catch (Exception e) {
+                DanmakuSpider.log("显示菜单失败: " + e.getMessage());
+            }
+            return;
+        }
+
+        // ====== 液态模式：自定义玻璃菜单 ======
+        try {
+            LinearLayout mainLayout = new LinearLayout(activity);
+            mainLayout.setOrientation(LinearLayout.VERTICAL);
+            mainLayout.setBackgroundColor(Color.TRANSPARENT);
+            mainLayout.setPadding(dpToPx(activity, 12), dpToPx(activity, 12),
+                    dpToPx(activity, 12), dpToPx(activity, 12));
+
+            // 标题
+            TextView titleView = new TextView(activity);
+            titleView.setText(title);
+            titleView.setTextSize(16);
+            titleView.setTextColor(PRIMARY_COLOR);
+            titleView.setGravity(Gravity.CENTER);
+            titleView.setTypeface(null, android.graphics.Typeface.BOLD);
+            titleView.setPadding(0, 0, 0, dpToPx(activity, 10));
+            mainLayout.addView(titleView);
+
+            // 选项列表
+            ScrollView scrollView = new ScrollView(activity);
+            scrollView.setBackgroundColor(Color.TRANSPARENT);
+            LinearLayout listLayout = new LinearLayout(activity);
+            listLayout.setOrientation(LinearLayout.VERTICAL);
+
+            for (int i = 0; i < options.length; i++) {
+                Button optionBtn = createLiquidGlassButton(activity, options[i], 0xFF2196F3);
+                LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 42));
+                btnParams.setMargins(0, dpToPx(activity, 3), 0, dpToPx(activity, 3));
+                optionBtn.setLayoutParams(btnParams);
+                optionBtn.setTextSize(12);
+                optionBtn.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+                optionBtn.setPadding(dpToPx(activity, 14), 0, dpToPx(activity, 14), 0);
+                listLayout.addView(optionBtn);
+            }
+
+            scrollView.addView(listLayout);
+            mainLayout.addView(scrollView, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+
+            // 取消按钮
+            Button cancelBtn = createLiquidGlassButton(activity, "取消", 0xFF999999);
+            LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 40));
+            cancelParams.setMargins(0, dpToPx(activity, 8), 0, 0);
+            cancelBtn.setLayoutParams(cancelParams);
+            mainLayout.addView(cancelBtn);
+
+            // 液态玻璃容器
+            LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+            liquidRoot.setBlurRadius(18f);
+            liquidRoot.setGlassAlpha(0.55f);
+            liquidRoot.setCornerRadius(24f);
+            liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+            builder.setView(liquidRoot);
+            final AlertDialog dialog = builder.create();
+
+            // 设置点击事件
+            for (int i = 0; i < listLayout.getChildCount(); i++) {
+                final int index = i;
+                listLayout.getChildAt(i).setOnClickListener(v -> {
+                    dialog.dismiss();
+                    if (listener != null) listener.onClick(dialog, index);
+                });
+            }
+            cancelBtn.setOnClickListener(v -> dialog.dismiss());
+
+            // 显示对话框
+            safeShowDialog(activity, dialog);
+            applyRealBlur(dialog);
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(
+                        new android.graphics.drawable.ColorDrawable(0x00000000));
+            }
+
+            // 设置窗口大小
+            android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
+            lp.copyFrom(dialog.getWindow().getAttributes());
+            lp.width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.75f);
+            lp.height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.80f);
+            dialog.getWindow().setAttributes(lp);
+
+        } catch (Exception e) {
+            DanmakuSpider.log("显示液态菜单失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     // 颜色加深辅助方法
