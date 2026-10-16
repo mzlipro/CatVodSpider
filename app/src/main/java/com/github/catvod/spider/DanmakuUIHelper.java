@@ -1480,7 +1480,8 @@ public class DanmakuUIHelper {
         if (DanmakuConfig.STYLE_GRID.equals(style)) return style + "（原模板二）";
         if (DanmakuConfig.STYLE_DARK_GRID.equals(style)) return style + "（原模板三）";
         if (DanmakuConfig.STYLE_MODERN_PANEL.equals(style)) return style + "（原模板四）";
-        if (DanmakuConfig.STYLE_MULTI_GRID.equals(style)) return style + "（新模板）";  // ← 新增
+        if (DanmakuConfig.STYLE_MULTI_GRID.equals(style)) return style + "（新模板）";  // ← 新增多格
+        if (DanmakuConfig.STYLE_LIQUID.equals(style)) return style + "（玻璃质感）";  // ← 新增液态
         return DanmakuConfig.normalizeDanmakuStyle(style);
     }
 
@@ -2022,7 +2023,12 @@ public class DanmakuUIHelper {
                     AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                     LinearLayout mainLayout = new LinearLayout(activity);
                     mainLayout.setOrientation(LinearLayout.VERTICAL);
-                    mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
+                    boolean isLiquid = config.isLiquidDanmakuStyle();  // ← 如果还没加这行
+                    if (isLiquid) {
+                        mainLayout.setBackground(createLiquidGlassDrawable(activity));
+                    } else {
+                        mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
+                    }
                     mainLayout.setPadding(dpToPx(activity, 15), dpToPx(activity, 10), dpToPx(activity, 15), dpToPx(activity, 10));
 
                     TextView title = new TextView(activity);
@@ -2223,6 +2229,9 @@ public class DanmakuUIHelper {
                     });
 
                     safeShowDialog(activity, dialog);
+                    if (isLiquid) {
+    applyRealBlur(dialog);   // ← Android 12+ 真实模糊
+}
 
                     android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
                     lp.copyFrom(dialog.getWindow().getAttributes());
@@ -2844,8 +2853,9 @@ public class DanmakuUIHelper {
 
         DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
         boolean isTemplate3 = config.isDarkGridDanmakuStyle();
-        boolean isMultiGrid = config.isMultiGridDanmakuStyle();          // ← 新增
-        boolean useGrid = config.isGridDanmakuStyle() || isMultiGrid;    // ← 多格模式也走网格
+        boolean isMultiGrid = config.isMultiGridDanmakuStyle();   //新增多格
+        boolean isLiquid = config.isLiquidDanmakuStyle();      // ← 新增液态
+        boolean useGrid = config.isGridDanmakuStyle() || isMultiGrid || isLiquid;  // ← 多格-液态也走网格
 
         if (useGrid) {
             // 使用网格布局
@@ -2944,7 +2954,7 @@ public class DanmakuUIHelper {
                             DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
                             int screenWidthPx = displayMetrics.widthPixels;
                             int screenWidthDp = (int) (screenWidthPx / displayMetrics.density);
-                            int columns = isMultiGrid ? 3 : Math.max(3, screenWidthDp / 120); // 多格模式固定3列
+                            int columns = (isMultiGrid || isLiquid) ? 3 : Math.max(3, screenWidthDp / 120); // 多格-液态模式固定3列
                             gridLayout.setColumnCount(columns);
                             gridLayout.setRowCount(GridLayout.UNDEFINED); // 行数自动计算
                             gridLayout.setUseDefaultMargins(false);
@@ -2958,8 +2968,10 @@ public class DanmakuUIHelper {
                             // 为每个剧集创建网格按钮
                             for (DanmakuItem item : animeItems) {
                                 Button gridItem;
-                                if (isMultiGrid) {
-                                    gridItem = createMultiGridResultButton(activity, item, dialog);  // ← 多格模式专用
+                                if (isLiquid) {
+                                    gridItem = createLiquidGridResultButton(activity, item, dialog);  // ← 新增液态专用
+                                } else if (isMultiGrid) {
+                                    gridItem = createMultiGridResultButton(activity, item, dialog);  //多格专用
                                 } else if (isTemplate3) {
                                     gridItem = createDarkGridResultButton(activity, item, dialog);
                                 } else {
@@ -3919,6 +3931,150 @@ public class DanmakuUIHelper {
         }
     }
 
+    // ========== 液态模式专用 ==========
+
+    /**
+     * 液态玻璃背景 Drawable
+     */
+    private static android.graphics.drawable.Drawable createLiquidGlassDrawable(Activity activity) {
+        android.graphics.drawable.GradientDrawable glass = new android.graphics.drawable.GradientDrawable();
+        glass.setCornerRadius(dpToPx(activity, 20));
+        glass.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+        glass.setColors(new int[]{
+                0xCCFFFFFF,
+                0xB3FFFFFF,
+                0xD9FFFFFF
+        });
+        glass.setStroke(dpToPx(activity, 2), 0x66FFFFFF);
+
+        android.graphics.drawable.GradientDrawable edgeHighlight = new android.graphics.drawable.GradientDrawable();
+        edgeHighlight.setCornerRadius(dpToPx(activity, 20));
+        edgeHighlight.setColor(android.graphics.Color.TRANSPARENT);
+        edgeHighlight.setStroke(dpToPx(activity, 1), 0xAAFFFFFF);
+
+        android.graphics.drawable.GradientDrawable outerGlow = new android.graphics.drawable.GradientDrawable();
+        outerGlow.setCornerRadius(dpToPx(activity, 22));
+        outerGlow.setColor(android.graphics.Color.TRANSPARENT);
+        outerGlow.setStroke(dpToPx(activity, 3), 0x22FFFFFF);
+
+        return new android.graphics.drawable.LayerDrawable(
+                new android.graphics.drawable.Drawable[]{outerGlow, glass, edgeHighlight});
+    }
+
+    /**
+     * 开启真实背景模糊（Android 12+）
+     */
+    private static void applyRealBlur(AlertDialog dialog) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                android.view.Window window = dialog.getWindow();
+                if (window != null) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                    window.setDimAmount(0.1f);
+                    window.setBackgroundBlurRadius(40);
+                }
+            } catch (Exception e) {
+                DanmakuSpider.log("背景模糊不支持: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 液态模式集数按钮：一行3个，玻璃质感，文字可换行
+     */
+    private static Button createLiquidGridResultButton(Activity activity, DanmakuItem item, AlertDialog dialog) {
+        Button resultItem = new Button(activity);
+        resultItem.setFocusable(true);
+        resultItem.setFocusableInTouchMode(true);
+        resultItem.setClickable(true);
+
+        // 提取来源+集数
+        String fullTitle = buildResultTitleWithSource(activity, item);
+        String displayText = fullTitle;
+        int sepIdx = fullTitle.lastIndexOf("－");
+        if (sepIdx < 0) sepIdx = fullTitle.lastIndexOf("-");
+        if (sepIdx >= 0 && sepIdx + 1 < fullTitle.length()) {
+            displayText = fullTitle.substring(sepIdx + 1).trim();
+        }
+        while (displayText.startsWith("-") || displayText.startsWith("－") || displayText.startsWith(" ")) {
+            displayText = displayText.substring(1).trim();
+        }
+
+        resultItem.setText(displayText);
+        resultItem.setTextSize(12);
+        resultItem.setSingleLine(false);
+        resultItem.setMaxLines(3);
+        resultItem.setEllipsize(TextUtils.TruncateAt.END);
+        resultItem.setGravity(Gravity.CENTER);
+
+        int padding = dpToPx(activity, 6);
+        resultItem.setPadding(padding, padding, padding, padding);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            resultItem.setTooltipText(fullTitle);
+        }
+
+        String currentDanmakuUrl = item.getDanmakuUrl();
+        boolean isHighlighted = currentDanmakuUrl != null
+                && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
+        applyLiquidResultStyle(resultItem, isHighlighted, false);
+
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.height = GridLayout.LayoutParams.WRAP_CONTENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            params.width = 0;
+            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        } else {
+            params.width = dpToPx(activity, 100);
+        }
+        int margin = dpToPx(activity, 4);
+        params.setMargins(margin, margin, margin, margin);
+        resultItem.setLayoutParams(params);
+        resultItem.setTag(item);
+
+        resultItem.setOnFocusChangeListener((v, hasFocus) -> {
+            DanmakuItem tagged = (DanmakuItem) v.getTag();
+            boolean highlight = tagged.getDanmakuUrl() != null
+                    && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
+            applyLiquidResultStyle((Button) v, highlight, hasFocus);
+            v.setScaleX(hasFocus ? 1.03f : 1.0f);
+            v.setScaleY(hasFocus ? 1.03f : 1.0f);
+        });
+
+        resultItem.setOnClickListener(v -> {
+            DanmakuItem selected = (DanmakuItem) v.getTag();
+            DanmakuSpider.recordDanmakuUrl(selected, false);
+            LeoDanmakuService.pushDanmakuDirect(selected, activity, false);
+            dialog.dismiss();
+        });
+
+        resultItem.setOnLongClickListener(v -> {
+            DanmakuItem tagged = (DanmakuItem) v.getTag();
+            Utils.safeShowToast(activity, buildResultTitleWithSource(activity, tagged), true);
+            return true;
+        });
+
+        return resultItem;
+    }
+
+    /**
+     * 液态模式按钮样式：玻璃质感
+     * 焦点=橙色发光，推送中=绿色高亮，普通=半透明白玻璃
+     */
+    private static void applyLiquidResultStyle(Button button, boolean highlighted, boolean focused) {
+        if (focused) {
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0x99FFF3E0, 0xFFFF6B00, 3));
+            button.setTextColor(0xFFE65100);
+        } else if (highlighted) {
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0x99E8F5E9, 0xFF34C759, 2));
+            button.setTextColor(0xFF1F7A3A);
+        } else {
+            button.setBackground(createRoundedStrokeBackgroundDrawable(0x66FFFFFF, 0x44FFFFFF, 1));
+            button.setTextColor(TEXT_PRIMARY);
+        }
+    }
+    
     // 颜色加深辅助方法
     private static int darkenColor(int color, float factor) {
         int a = (color >> 24) & 0xFF;
