@@ -2016,8 +2016,28 @@ public class DanmakuUIHelper {
                 btnLayout.addView(closeButton);
                 mainLayout.addView(btnLayout);
 
-                builder.setView(mainLayout);
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidLog = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidLog) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
                 AlertDialog dialog = builder.create();
+                if (isLiquidLog) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 // 设置对话框最大高度为屏幕高度的70%
                 dialog.setOnShowListener(d -> {
@@ -3854,8 +3874,28 @@ public class DanmakuUIHelper {
                 urlView.setPadding(0, dpToPx(activity, 10), 0, 0);
                 mainLayout.addView(urlView);
 
-                builder.setView(mainLayout);
+                // ====== 液态玻璃包装 ======
+                boolean isLiquidQR = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                if (isLiquidQR) {
+                    LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                    liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setCornerRadius(24f);
+                    mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                    liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                    builder.setView(liquidRoot);
+                } else {
+                    builder.setView(mainLayout);
+                }
                 AlertDialog dialog = builder.create();
+                if (isLiquidQR) {
+                    applyRealBlur(dialog);
+                    if (dialog.getWindow() != null)
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                }
 
                 new Thread(() -> {
                     try {
@@ -4418,25 +4458,34 @@ public class DanmakuUIHelper {
             titleView.setPadding(0, 0, 0, dpToPx(activity, 10));
             mainLayout.addView(titleView);
 
-            // 选项列表
+            // ====== 改动1：GridLayout 一行两个 ======
             ScrollView scrollView = new ScrollView(activity);
             scrollView.setBackgroundColor(Color.TRANSPARENT);
-            LinearLayout listLayout = new LinearLayout(activity);
-            listLayout.setOrientation(LinearLayout.VERTICAL);
+            GridLayout gridLayout = new GridLayout(activity);
+            gridLayout.setColumnCount(2);
+            gridLayout.setUseDefaultMargins(false);
+            gridLayout.setPadding(0, 0, 0, 0);
 
             for (int i = 0; i < options.length; i++) {
-                Button optionBtn = createLiquidGlassButton(activity, options[i], 0xFF2196F3);
-                LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 42));
-                btnParams.setMargins(0, dpToPx(activity, 3), 0, dpToPx(activity, 3));
+                Button optionBtn = createLiquidMenuButton(activity, options[i]);
+
+                // ====== 改动2：GridLayout 一行两个的布局参数 ======
+                GridLayout.LayoutParams btnParams = new GridLayout.LayoutParams();
+                btnParams.height = dpToPx(activity, 44);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    btnParams.width = 0;
+                    btnParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                    btnParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                } else {
+                    btnParams.width = dpToPx(activity, 160);
+                }
+                int margin = dpToPx(activity, 4);
+                btnParams.setMargins(margin, margin, margin, margin);
                 optionBtn.setLayoutParams(btnParams);
-                optionBtn.setTextSize(12);
-                optionBtn.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-                optionBtn.setPadding(dpToPx(activity, 14), 0, dpToPx(activity, 14), 0);
-                listLayout.addView(optionBtn);
+                gridLayout.addView(optionBtn);
             }
 
-            scrollView.addView(listLayout);
+            scrollView.addView(gridLayout);
             mainLayout.addView(scrollView, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
@@ -4462,9 +4511,9 @@ public class DanmakuUIHelper {
             final AlertDialog dialog = builder.create();
 
             // 设置点击事件
-            for (int i = 0; i < listLayout.getChildCount(); i++) {
+            for (int i = 0; i < gridLayout.getChildCount(); i++) {
                 final int index = i;
-                listLayout.getChildAt(i).setOnClickListener(v -> {
+                gridLayout.getChildAt(i).setOnClickListener(v -> {
                     dialog.dismiss();
                     if (listener != null) listener.onClick(dialog, index);
                 });
@@ -4490,6 +4539,48 @@ public class DanmakuUIHelper {
             DanmakuSpider.log("显示液态菜单失败: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 液态菜单专用按钮：橙色空心边框（不填充），保持圆角
+     */
+    private static Button createLiquidMenuButton(Activity activity, String text) {
+        Button button = new Button(activity);
+        button.setText(text);
+        button.setTextSize(11);
+        button.setTypeface(null, android.graphics.Typeface.BOLD);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+        button.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        button.setPadding(dpToPx(activity, 10), 0, dpToPx(activity, 10), 0);
+
+        // 默认：白色半透明玻璃 + 灰色边框
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dpToPx(activity, 10));
+        bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+        bg.setStroke(dpToPx(activity, 2), 0x99AAAAAA);
+        button.setBackground(bg);
+        button.setTextColor(0xDD222222);
+
+        // 焦点：橙色空心边框（不填充）
+        button.setOnFocusChangeListener((v, hasFocus) -> {
+            android.graphics.drawable.GradientDrawable bg2 = new android.graphics.drawable.GradientDrawable();
+            bg2.setCornerRadius(dpToPx(activity, 10));  // 保持圆角
+            if (hasFocus) {
+                bg2.setColors(new int[]{0x33FFFFFF, 0x22FFFFFF, 0x33FFFFFF});  // 微微透明白底
+                bg2.setStroke(dpToPx(activity, 3), 0xFFFF6B00);  // 橙色空心边框
+                ((Button) v).setTextColor(0xFFE65100);  // 橙色文字
+            } else {
+                bg2.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+                bg2.setStroke(dpToPx(activity, 2), 0x99AAAAAA);
+                ((Button) v).setTextColor(0xDD222222);
+            }
+            v.setBackground(bg2);
+            v.setScaleX(hasFocus ? 1.03f : 1.0f);
+            v.setScaleY(hasFocus ? 1.03f : 1.0f);
+        });
+
+        return button;
     }
     
     // 颜色加深辅助方法
