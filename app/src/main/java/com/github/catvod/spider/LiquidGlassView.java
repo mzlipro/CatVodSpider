@@ -39,15 +39,21 @@ public class LiquidGlassView extends FrameLayout {
         setWillNotDraw(false);
         setClipChildren(false);
 
+        // ====== 新增：裁剪到圆角 ======
+        setClipToOutline(true);
+        setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(),
+                        dp((int) mCornerRadius));
+            }
+        });
+
         mTintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mTintPaint.setColor(mTintColor);
         mTintPaint.setAlpha((int) (mGlassAlpha * 255));
 
         mGradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        // 删除以下三行（不再使用）
-        // mEdgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        // mInnerShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        // mShimmerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     }
 
     @Override
@@ -190,6 +196,7 @@ public class LiquidGlassView extends FrameLayout {
 
     public void setCornerRadius(float radius) {
         mCornerRadius = radius;
+        invalidateOutline();  // ← 新增：刷新圆角裁剪
         invalidate();
     }
 
