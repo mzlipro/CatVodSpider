@@ -2080,7 +2080,7 @@ public class DanmakuUIHelper {
                     tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
                     // ====== 关键：宽度自适应内容，高度缩小 ======
                     LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 27)); //来源框高度
+                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 17)); //来源框高度
                     tabContainer.setLayoutParams(tabContainerParams);
                     tabContainer.setVisibility(View.GONE);
 
@@ -2459,7 +2459,7 @@ public class DanmakuUIHelper {
     private static Button createSearchSourceTabButton(Activity activity, String text, boolean isActive, boolean isTemplate3) {
         Button button = new Button(activity);
         button.setText(text);
-        button.setTextSize(7); //来源字体大小
+        button.setTextSize(5); //来源字体大小
         button.setTypeface(null, android.graphics.Typeface.BOLD);
         button.setGravity(Gravity.CENTER);
         button.setSingleLine(true);
@@ -2467,7 +2467,7 @@ public class DanmakuUIHelper {
         button.setAllCaps(false);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
-        button.setPadding(dpToPx(activity, 7), 0, dpToPx(activity, 7), 0); //来源边距
+        button.setPadding(dpToPx(activity, 3), 0, dpToPx(activity, 3), 0); //来源边距
         button.setTag(Boolean.valueOf(isActive));
         updateSearchSourceTabStyle(button, isActive, isTemplate3, false);
 
@@ -3235,15 +3235,11 @@ public class DanmakuUIHelper {
     }
 
     private static void sortResults(List<DanmakuItem> results, boolean reversed) {
-        java.util.Collections.sort(results, new java.util.Comparator<DanmakuItem>() {
-            @Override
-            public int compare(DanmakuItem item1, DanmakuItem item2) {
-                // 基于 epId 进行排序，假设 epId 是 String 或可比较类型 [1]
-                if (item1.epId == null || item2.epId == null) return 0;
-                int cmp = item1.epId.compareTo(item2.epId);
-                return reversed ? -cmp : cmp; // 根据状态决定正序或倒序
-            }
-        });
+        // 不做自定义排序，保持接口返回的原始顺序
+        // 倒序时仅反转列表
+        if (reversed) {
+            java.util.Collections.reverse(results);
+        }
     }
 
     private static void sortAnimeTitlesByKeyword(List<String> titles) {
