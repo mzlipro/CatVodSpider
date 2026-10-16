@@ -2505,13 +2505,9 @@ public class DanmakuScanner {
 
     /**
      * 显示Leo按钮菜单
-     * @param activity
      */
     private static void showLeoButtonMenu(final Activity activity) {
         try {
-            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(activity);
-            builder.setTitle("Leo弹幕选项");
-
             // 构建菜单选项列表
             java.util.List<String> optionsList = new java.util.ArrayList<>();
             optionsList.add("📱 远程搜索/输入");
@@ -2541,128 +2537,109 @@ public class DanmakuScanner {
 
             String[] options = optionsList.toArray(new String[0]);
 
-            builder.setItems(options, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which) {
-                        case 0: // 远程搜索/输入
-                            DanmakuSpider.log("[菜单] 打开远程搜索二维码");
-                            String qrUrl = "http://" + NetworkUtils.getLocalIpAddress() + ":9810";
-                            DanmakuUIHelper.showQRCodeDialog(activity, qrUrl);
-                            break;
+            // ====== 调用通用菜单方法（自动支持液态玻璃）======
+            DanmakuUIHelper.showStyledMenuDialog(activity, "Leo弹幕选项", options,
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            switch (which) {
+                                case 0: // 远程搜索/输入
+                                    DanmakuSpider.log("[菜单] 打开远程搜索二维码");
+                                    String qrUrl = "http://" + NetworkUtils.getLocalIpAddress() + ":9810";
+                                    DanmakuUIHelper.showQRCodeDialog(activity, qrUrl);
+                                    break;
 
-                        case 1: // 自动推送开关
-                            DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                            // 切换自动推送状态
-                            config.setAutoPushEnabled(!config.isAutoPushEnabled());
-                            DanmakuConfigManager.saveConfig(activity, config);
-                        
-                            // 更新 UI 显示
-                            DanmakuSpider.log("自动推送弹幕状态切换：" + config.isAutoPushEnabled());
-                            Utils.safeShowToast(activity,
-                                    config.isAutoPushEnabled() ? "自动推送弹幕已开启" : "自动推送弹幕已关闭");
-                        
-                            // 如果关闭了自动推送，可以停止相关监控
-                            if (!config.isAutoPushEnabled()) {
-                                pendingPushes.clear();
-                                DanmakuSpider.log("[菜单] 已清空待推送队列");
+                                case 1: // 自动推送开关
+                                    DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
+                                    config.setAutoPushEnabled(!config.isAutoPushEnabled());
+                                    DanmakuConfigManager.saveConfig(activity, config);
+                                    DanmakuSpider.log("自动推送弹幕状态切换：" + config.isAutoPushEnabled());
+                                    Utils.safeShowToast(activity,
+                                            config.isAutoPushEnabled() ? "自动推送弹幕已开启" : "自动推送弹幕已关闭");
+                                    if (!config.isAutoPushEnabled()) {
+                                        pendingPushes.clear();
+                                        DanmakuSpider.log("[菜单] 已清空待推送队列");
+                                    }
+                                    break;
+
+                                case 2: // 静默模式
+                                    DanmakuConfig configSilent = DanmakuConfigManager.getConfig(activity);
+                                    configSilent.setSilentMode(!configSilent.isSilentMode());
+                                    DanmakuConfigManager.saveConfig(activity, configSilent);
+                                    DanmakuSpider.log("静默模式状态切换：" + configSilent.isSilentMode());
+                                    Utils.safeShowToast(activity,
+                                            configSilent.isSilentMode() ? "静默模式已开启" : "静默模式已关闭");
+                                    break;
+
+                                case 3:
+                                    DanmakuSpider.log("[菜单] 打开弹幕设置");
+                                    DanmakuUIHelper.showConfigDialog(activity);
+                                    break;
+                                case 4:
+                                    DanmakuSpider.log("[菜单] 打开缓存管理");
+                                    DanmakuUIHelper.showCacheManagerDialog(activity);
+                                    break;
+                                case 5:
+                                    DanmakuSpider.log("[菜单] 打开布局配置");
+                                    DanmakuUIHelper.showLpConfigDialog(activity);
+                                    break;
+                                case 6:
+                                    DanmakuSpider.log("[菜单] 打开弹幕交互模式");
+                                    DanmakuUIHelper.showDanmakuStyleDialog(activity);
+                                    break;
+                                case 7:
+                                    DanmakuSpider.log("[菜单] 打开弹幕时间偏移");
+                                    DanmakuUIHelper.showDanmakuOffsetDialog(activity);
+                                    break;
+                                case 8:
+                                    DanmakuSpider.log("[菜单] 打开统一日志查看器");
+                                    DanmakuUIHelper.showUnifiedLogDialog(activity);
+                                    break;
+
+                                case 9:
+                                    String sPTypeName = ProxyManager.getProxyTypeName();
+                                    String sPStatus = ProxyManager.getProxyStatusText();
+                                    String sPHealth = ProxyManager.isProxyRunning() && ProxyManager.isProxyHealthy() ? "健康" : ProxyManager.isSwitching() ? "" : "异常";
+                                    String sToastMsg = ProxyManager.isProxyRunning() ?
+                                            "代理类型: " + sPTypeName + "\n状态: " + sPStatus + "\n健康检查: " + sPHealth :
+                                            "代理类型: " + sPTypeName + "\n状态: " + sPStatus;
+                                    Utils.safeShowToast(activity, sToastMsg);
+                                    break;
+
+                                case 10:
+                                    DanmakuSpider.log("[菜单] 打开代理端口设置");
+                                    DanmakuUIHelper.showProxyPortDialog(activity);
+                                    break;
+
+                                case 11:
+                                    if (ProxyManager.isSwitching()) {
+                                        Utils.safeShowToast(activity, "代理切换中，请稍候...");
+                                        break;
+                                    }
+                                    if (ProxyManager.getActiveProxyType() == ProxyManager.PROXY_TYPE_JAVA) {
+                                        if (ProxyManager.canSwitchToGoProxy()) {
+                                            ProxyManager.switchToGoProxy(activity.getApplicationContext());
+                                            Utils.safeShowToast(activity, "切换到Go代理中，请稍候...");
+                                        } else {
+                                            Utils.safeShowToast(activity, "Go代理不可用");
+                                        }
+                                    } else {
+                                        ProxyManager.switchToJavaProxy(activity.getApplicationContext());
+                                        Utils.safeShowToast(activity, "切换到Java代理中，请稍候...");
+                                    }
+                                    break;
+
+                                case 12:
+                                    if (ProxyManager.isSwitching()) {
+                                        Utils.safeShowToast(activity, "代理操作中，请稍候...");
+                                        break;
+                                    }
+                                    ProxyManager.restartProxy(activity.getApplicationContext());
+                                    Utils.safeShowToast(activity, "代理重启中，请稍候...");
+                                    break;
                             }
-                        
-                            break;
-                        
-                        case 2: // 静默模式
-                            DanmakuConfig configSilent = DanmakuConfigManager.getConfig(activity);
-                            // 切换静默模式状态
-                            configSilent.setSilentMode(!configSilent.isSilentMode());
-                            DanmakuConfigManager.saveConfig(activity, configSilent);
-                        
-                            // 更新 UI 显示
-                            DanmakuSpider.log("静默模式状态切换：" + configSilent.isSilentMode());
-                            Utils.safeShowToast(activity,
-                                    configSilent.isSilentMode() ? "静默模式已开启" : "静默模式已关闭");
-                        
-                            break;
-
-                        case 3: // 弹幕设置
-                            DanmakuSpider.log("[菜单] 打开弹幕设置");
-                            DanmakuUIHelper.showConfigDialog(activity);
-                            break;
-                        case 4: // 缓存管理
-                            DanmakuSpider.log("[菜单] 打开缓存管理");
-                            DanmakuUIHelper.showCacheManagerDialog(activity);
-                            break;
-                        case 5: // 布局配置
-                            DanmakuSpider.log("[菜单] 打开布局配置");
-                            DanmakuUIHelper.showLpConfigDialog(activity);
-                            break;
-                        case 6: // 弹幕交互模式
-                            DanmakuSpider.log("[菜单] 打开弹幕交互模式");
-                            DanmakuUIHelper.showDanmakuStyleDialog(activity);
-                            break;
-                        case 7: // 弹幕时间偏移
-                            DanmakuSpider.log("[菜单] 打开弹幕时间偏移");
-                            DanmakuUIHelper.showDanmakuOffsetDialog(activity);
-                            break;
-                        case 8: // 查看日志（统一日志查看器）
-                            DanmakuSpider.log("[菜单] 打开统一日志查看器");
-                            DanmakuUIHelper.showUnifiedLogDialog(activity);
-                            break;
-
-                        case 9: // 代理状态
-                            String sPTypeName = ProxyManager.getProxyTypeName();
-                            String sPStatus = ProxyManager.getProxyStatusText();
-                            String sPHealth = ProxyManager.isProxyRunning() && ProxyManager.isProxyHealthy() ? "健康" : ProxyManager.isSwitching() ? "" : "异常";
-                            String sToastMsg = ProxyManager.isProxyRunning() ?
-                                    "代理类型: " + sPTypeName + "\n状态: " + sPStatus + "\n健康检查: " + sPHealth :
-                                    "代理类型: " + sPTypeName + "\n状态: " + sPStatus;
-                            Utils.safeShowToast(activity, sToastMsg);
-                            DanmakuSpider.log("[菜单] 查看代理状态: " + sToastMsg);
-                            break;
-
-                        case 10: // 代理端口
-                            DanmakuSpider.log("[菜单] 打开代理端口设置");
-                            DanmakuUIHelper.showProxyPortDialog(activity);
-                            break;
-
-                        case 11: // 切换代理
-                            if (ProxyManager.isSwitching()) {
-                                Utils.safeShowToast(activity, "代理切换中，请稍候...");
-                                break;
-                            }
-                            DanmakuSpider.log("[菜单] 用户触发代理切换");
-                            if (ProxyManager.getActiveProxyType() == ProxyManager.PROXY_TYPE_JAVA) {
-                                if (ProxyManager.canSwitchToGoProxy()) {
-                                    ProxyManager.switchToGoProxy(activity.getApplicationContext());
-                                    Utils.safeShowToast(activity, "切换到Go代理中，请稍候...");
-                                } else {
-                                    Utils.safeShowToast(activity, "Go代理不可用");
-                                }
-                            } else {
-                                ProxyManager.switchToJavaProxy(activity.getApplicationContext());
-                                Utils.safeShowToast(activity, "切换到Java代理中，请稍候...");
-                            }
-                            break;
-
-                        case 12: // 重启代理
-                            if (ProxyManager.isSwitching()) {
-                                Utils.safeShowToast(activity, "代理操作中，请稍候...");
-                                break;
-                            }
-                            DanmakuSpider.log("[菜单] 用户触发代理重启");
-                            ProxyManager.restartProxy(activity.getApplicationContext());
-                            Utils.safeShowToast(activity, "代理重启中，请稍候...");
-                            break;
-                    }
-                }
-            });
-
-            builder.setNegativeButton("取消", null);
-
-            try {
-                builder.show();
-            } catch (Exception e) {
-                DanmakuSpider.log("显示菜单失败: " + e.getMessage());
-            }
+                        }
+                    });
         } catch (Exception e) {
             DanmakuSpider.log("创建菜单失败: " + e.getMessage());
         }
