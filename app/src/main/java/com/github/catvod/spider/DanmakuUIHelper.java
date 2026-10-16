@@ -2248,6 +2248,7 @@ public class DanmakuUIHelper {
                     searchInput.setTextColor(isTemplate3 ? DARK_TEXT_PRIMARY : TEXT_PRIMARY);
                     LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, dpToPx(activity, 44), 1);
                     inputParams.setMargins(0, 0, dpToPx(activity, 4), 0);
+                    searchInput.setLayoutParams(inputParams);
                     if (isLiquid) {
                         final boolean liquidMode = isLiquid;
                         searchInput.setOnFocusChangeListener((v, hasFocus) -> {
