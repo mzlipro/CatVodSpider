@@ -2047,23 +2047,42 @@ public class DanmakuUIHelper {
                     String cachedKeyword = SharedPreferencesService.getSearchKeywordCache(activity, initialKeyword);
                     searchInput.setText(cachedKeyword);
                     searchInput.setHintTextColor(isTemplate3 ? DARK_TEXT_TERTIARY : TEXT_TERTIARY);
-                    searchInput.setBackgroundColor(isTemplate3 ? DARK_BG_SECONDARY : BACKGROUND_LIGHT);
+                    if (isLiquid) {
+                        searchInput.setBackground(createLiquidInputDrawable(activity, false));
+                    } else {
+                        searchInput.setBackgroundColor(isTemplate3 ? DARK_BG_SECONDARY : BACKGROUND_LIGHT);
+                    }
                     searchInput.setPadding(dpToPx(activity, 12), dpToPx(activity, 10), dpToPx(activity, 12), dpToPx(activity, 10));
                     searchInput.setTextSize(14);
                     searchInput.setTextColor(isTemplate3 ? DARK_TEXT_PRIMARY : TEXT_PRIMARY);
                     LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, dpToPx(activity, 44), 1);
                     inputParams.setMargins(0, 0, dpToPx(activity, 4), 0);
-                    searchInput.setLayoutParams(inputParams);
+                    if (isLiquid) {
+                        final boolean liquidMode = isLiquid;
+                        searchInput.setOnFocusChangeListener((v, hasFocus) -> {
+                            ((EditText) v).setBackground(createLiquidInputDrawable(activity, hasFocus));
+                        });
+                    }
     
-                    Button reverseBtn = isTemplate3 ?
-                            createDarkSolidButton(activity, isReversed ? "倒序" : "升序", isReversed ? DARK_ACCENT_COLOR : DARK_TERTIARY_LIGHT) :
-                            createStyledButton(activity, isReversed ? "倒序" : "升序", isReversed ? ACCENT_COLOR : TERTIARY_LIGHT);
+                    Button reverseBtn;
+                    if (isLiquid) {
+                        reverseBtn = createLiquidGlassButton(activity, isReversed ? "倒序" : "升序", 0xFF4CAF50);
+                    } else if (isTemplate3) {
+                        reverseBtn = createDarkSolidButton(activity, isReversed ? "倒序" : "升序", isReversed ? DARK_ACCENT_COLOR : DARK_TERTIARY_LIGHT);
+                    } else {
+                        reverseBtn = createStyledButton(activity, isReversed ? "倒序" : "升序", isReversed ? ACCENT_COLOR : TERTIARY_LIGHT);
+                    }
                     reverseBtn.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(activity, 50), dpToPx(activity, 44)));
                     reverseBtn.setTextSize(16);
     
-                    Button searchBtn = isTemplate3 ?
-                            createDarkSolidButton(activity, "搜索", DARK_BG_TERTIARY) :
-                            createStyledButton(activity, "搜索", PRIMARY_COLOR);
+                    Button searchBtn;
+                    if (isLiquid) {
+                        searchBtn = createLiquidGlassButton(activity, "搜索", 0xFF2196F3);
+                    } else if (isTemplate3) {
+                        searchBtn = createDarkSolidButton(activity, "搜索", DARK_BG_TERTIARY);
+                    } else {
+                        searchBtn = createStyledButton(activity, "搜索", PRIMARY_COLOR);
+                    }
                     searchBtn.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(activity, 70), dpToPx(activity, 44)));
     
                     searchLayout.addView(searchInput);
@@ -2079,7 +2098,11 @@ public class DanmakuUIHelper {
                     tabContainer.setOrientation(LinearLayout.HORIZONTAL);
                     tabContainer.setGravity(Gravity.CENTER_VERTICAL);
                     tabContainer.setPadding(dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4));
-                    tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
+                    if (isLiquid) {
+                        tabContainer.setBackgroundColor(0x33FFFFFF);
+                    } else {
+                        tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
+                    }
                     LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 17));
                     tabContainer.setLayoutParams(tabContainerParams);
@@ -2370,22 +2393,32 @@ public class DanmakuUIHelper {
 
     private static void updateLegacySourceTabState(Button button, boolean isActive, boolean isTemplate3) {
         button.setTag(Boolean.valueOf(isActive));
+
+        // 液态模式判断
+        if (button.getContext() instanceof Activity) {
+            DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
+            if (cfg.isLiquidDanmakuStyle()) {
+                if (button.hasFocus()) {
+                    button.setBackground(createLiquidGlassDrawable(button.getContext(), 0xFFFF6B00, 3));
+                    button.setTextColor(Color.WHITE);
+                } else if (isActive) {
+                    button.setBackground(createLiquidGlassDrawable(button.getContext(), 0xFF2196F3, 2));
+                    button.setTextColor(Color.WHITE);
+                } else {
+                    button.setBackground(createLiquidGlassDrawable(button.getContext(), 0x44FFFFFF, 1));
+                    button.setTextColor(0xDD333333);
+                }
+                return;
+            }
+        }
+
+        // 原有逻辑不变
         if (isTemplate3) {
             button.setBackground(createRoundedTransparentDrawable(isActive ? DARK_PRIMARY_COLOR : DARK_INACTIVE));
             button.setTextColor(DARK_TEXT_PRIMARY);
         } else {
             button.setBackground(createRoundedBackgroundDrawable(isActive ? PRIMARY_COLOR : GRAY_INACTIVE));
             button.setTextColor(Color.WHITE);
-        }
-        // 如果当前有焦点，焦点橙色优先显示
-        if (button.hasFocus()) {
-            if (isTemplate3) {
-                button.setBackground(createRoundedTransparentDrawable(0xFFFF6B00));
-                button.setTextColor(Color.WHITE);
-            } else {
-                button.setBackground(createRoundedBackgroundDrawable(0xFFFF6B00));
-                button.setTextColor(Color.WHITE);
-            }
         }
     }
 
@@ -3208,6 +3241,34 @@ public class DanmakuUIHelper {
     }
 
     private static void applyGroupHeaderStyle(Button button, boolean active, boolean isTemplate3, boolean focused) {
+        // ====== 液态模式分支 ======
+        if (button.getContext() instanceof Activity) {
+            DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
+            if (cfg.isLiquidDanmakuStyle()) {
+                android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                bg.setCornerRadius(dpToPx(button.getContext(), 12));
+                if (focused) {
+                    // 焦点：橙色玻璃 + 橙色粗边框
+                    bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800});
+                    bg.setStroke(dpToPx(button.getContext(), 3), 0xFFFF6B00);
+                    button.setTextColor(0xFFE65100);
+                } else if (active) {
+                    // 选中/包含上次使用弹幕：蓝色玻璃 + 蓝色边框
+                    bg.setColors(new int[]{0x88E3F2FD, 0x5590CAF9});
+                    bg.setStroke(dpToPx(button.getContext(), 2), 0xFF2196F3);
+                    button.setTextColor(0xFF1565C0);
+                } else {
+                    // 普通：白色半透明玻璃 + 灰色边框（始终有框）
+                    bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
+                    bg.setStroke(dpToPx(button.getContext(), 2), 0x99AAAAAA);
+                    button.setTextColor(0xDD222222);
+                }
+                button.setBackground(bg);
+                return;
+            }
+        }
+
+        // ====== 原有逻辑不变 ======
         if (isTemplate3) {
             button.setTextColor(DARK_TEXT_PRIMARY);
             int fillColor = focused || active ? 0x33007AFF : DARK_BG_SECONDARY;
@@ -4069,31 +4130,106 @@ public class DanmakuUIHelper {
     /**
      * 真液态按钮样式：玻璃质感 + 边缘高光 + 折射渐变
      */
+    /**
+     * 液态模式按钮样式：每项都有明显边框
+     */
     private static void applyLiquidResultStyle(Activity activity, Button button, boolean highlighted, boolean focused) {
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(dpToPx(activity, 12));
 
         if (focused) {
-            // 焦点：橙色玻璃发光
-            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+            // 焦点：橙色玻璃 + 粗边框
             bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800, 0xCCFFE0B2});
-            bg.setStroke(dpToPx(activity, 2), 0xFFFF6B00);
+            bg.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
             button.setTextColor(0xFFE65100);
         } else if (highlighted) {
-            // 推送中：绿色玻璃
-            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+            // 推送中：绿色玻璃 + 粗边框
             bg.setColors(new int[]{0xB3C8E6C9, 0x8866BB6A, 0xB3C8E6C9});
-            bg.setStroke(dpToPx(activity, 2), 0xFF34C759);
+            bg.setStroke(dpToPx(activity, 3), 0xFF34C759);
             button.setTextColor(0xFF1B5E20);
         } else {
-            // 普通：半透明玻璃
-            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
-            bg.setColors(new int[]{0x88FFFFFF, 0x55FFFFFF, 0x77FFFFFF});
-            bg.setStroke(dpToPx(activity, 1), 0x44FFFFFF);
+            // 普通：半透明玻璃 + 可见边框（不能只有焦点才有框！）
+            bg.setColors(new int[]{0x77FFFFFF, 0x55FFFFFF, 0x77FFFFFF});
+            bg.setStroke(dpToPx(activity, 2), 0x99AAAAAA);  // ← 明显灰色边框
             button.setTextColor(0xDD222222);
         }
 
         button.setBackground(bg);
+    }
+    
+    /**
+     * 液态玻璃输入框背景
+     */
+    private static android.graphics.drawable.Drawable createLiquidInputDrawable(Activity activity, boolean focused) {
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dpToPx(activity, 10));
+        if (focused) {
+            bg.setColors(new int[]{0xCCBBDEFB, 0x8890CAF9, 0xCCBBDEFB});
+            bg.setStroke(dpToPx(activity, 2), 0xFF2196F3);
+        } else {
+            bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+            bg.setStroke(dpToPx(activity, 2), 0x99BBBBBB);  // ← 始终有边框
+        }
+        return bg;
+    }
+
+    /**
+     * 液态玻璃按钮（用于搜索、反序等）
+     */
+    private static Button createLiquidGlassButton(Activity activity, String text, int tintColor) {
+        Button button = new Button(activity);
+        button.setText(text);
+        button.setTextSize(14);
+        button.setTypeface(null, android.graphics.Typeface.BOLD);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(true);
+
+        // 默认液态样式
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dpToPx(activity, 12));
+        bg.setColors(new int[]{
+            (tintColor & 0x00FFFFFF) | 0xCC000000,
+            (tintColor & 0x00FFFFFF) | 0x88000000,
+            (tintColor & 0x00FFFFFF) | 0xCC000000
+        });
+        bg.setStroke(dpToPx(activity, 2), 0x99FFFFFF);  // ← 始终有边框
+        button.setBackground(bg);
+        button.setTextColor(Color.WHITE);
+
+        // 焦点效果
+        button.setOnFocusChangeListener((v, hasFocus) -> {
+            android.graphics.drawable.GradientDrawable bg2 = new android.graphics.drawable.GradientDrawable();
+            bg2.setCornerRadius(dpToPx(activity, 12));
+            if (hasFocus) {
+                bg2.setColors(new int[]{0xFFFF6B00, 0xFFE65100, 0xFFFF6B00});
+                bg2.setStroke(dpToPx(activity, 3), 0xFFFFFFFF);
+                ((Button) v).setTextColor(Color.WHITE);
+            } else {
+                bg2.setColors(new int[]{
+                    (tintColor & 0x00FFFFFF) | 0xCC000000,
+                    (tintColor & 0x00FFFFFF) | 0x88000000,
+                    (tintColor & 0x00FFFFFF) | 0xCC000000
+                });
+                bg2.setStroke(dpToPx(activity, 2), 0x99FFFFFF);
+                ((Button) v).setTextColor(Color.WHITE);
+            }
+            v.setBackground(bg2);
+            v.setScaleX(hasFocus ? 1.05f : 1.0f);
+            v.setScaleY(hasFocus ? 1.05f : 1.0f);
+        });
+
+        return button;
+    }
+
+    /**
+     * 液态玻璃通用 Drawable（有边框）
+     */
+    private static android.graphics.drawable.Drawable createLiquidGlassDrawable(Context ctx, int strokeColor, int strokeWidth) {
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dpToPx(ctx, 10));
+        bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+        bg.setStroke(dpToPx(ctx, strokeWidth), strokeColor | 0xFF000000);
+        return bg;
     }
     
     // 颜色加深辅助方法
