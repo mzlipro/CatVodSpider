@@ -43,6 +43,8 @@ import java.util.Set;
 
 public class DanmakuUIHelper {
 
+    // 是否强制所有弹窗使用液态玻璃效果（true=始终启用，false=跟随主题模式）
+    private static final boolean FORCE_LIQUID_GLASS = true;
     // 定义统一的颜色常量 - 现代化配色方案
     private static final int PRIMARY_COLOR = 0xFF007AFF;        // 主色调蓝色 - 第一层(页签)
     private static final int PRIMARY_DARK = 0xFF0056B3;         // 深蓝色
@@ -270,7 +272,7 @@ public class DanmakuUIHelper {
                     mainLayout.addView(btnLayout);
 
                     // ====== 液态玻璃包装 ======
-                    boolean isLiquidMode1 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                    boolean isLiquidMode1 = FORCE_LIQUID_GLASS;
                     if (isLiquidMode1) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
@@ -433,7 +435,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(bottomLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidMode2 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidMode2 = FORCE_LIQUID_GLASS;
                 if (isLiquidMode2) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -769,7 +771,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(bottomLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidMode3 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidMode3 = FORCE_LIQUID_GLASS;
                 if (isLiquidMode3) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -1185,7 +1187,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(btnLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidMode4 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidMode4 = FORCE_LIQUID_GLASS;
                 if (isLiquidMode4) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -1330,7 +1332,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(btnLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidMode5 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidMode5 = FORCE_LIQUID_GLASS;
                 if (isLiquidMode5) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -1478,7 +1480,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(btnLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidMode6 = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidMode6 = FORCE_LIQUID_GLASS;
                 if (isLiquidMode6) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -1612,7 +1614,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(gridLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidMode7 = config.isLiquidDanmakuStyle();
+                boolean isLiquidMode7 = FORCE_LIQUID_GLASS;
                 if (isLiquidMode7) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -2043,7 +2045,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(btnLayout);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidLog = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidLog = FORCE_LIQUID_GLASS;
                 if (isLiquidLog) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -2209,7 +2211,7 @@ public class DanmakuUIHelper {
                     DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
                     boolean isTemplate3 = config.isDarkGridDanmakuStyle();
                     boolean isModernPanel = config.isModernPanelDanmakuStyle();
-                    boolean isLiquid = config.isLiquidDanmakuStyle();
+                    boolean isLiquid = FORCE_LIQUID_GLASS;
     
                     AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                     LinearLayout mainLayout = new LinearLayout(activity);
@@ -3901,7 +3903,7 @@ public class DanmakuUIHelper {
                 mainLayout.addView(urlView);
 
                 // ====== 液态玻璃包装 ======
-                boolean isLiquidQR = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+                boolean isLiquidQR = FORCE_LIQUID_GLASS;
                 if (isLiquidQR) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
@@ -4450,7 +4452,7 @@ public class DanmakuUIHelper {
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
 
         DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-        boolean isLiquid = config.isLiquidDanmakuStyle();
+        boolean isLiquid = FORCE_LIQUID_GLASS;
 
         // ====== 非液态模式：使用系统默认菜单 ======
         if (!isLiquid) {
