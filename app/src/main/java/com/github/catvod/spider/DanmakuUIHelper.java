@@ -1531,7 +1531,6 @@ public class DanmakuUIHelper {
         });
     }
 
-    public static void showDanjava
     public static void showDanmakuStyleDialog(Context ctx) {
         if (!(ctx instanceof Activity)) {
             DanmakuSpider.log("错误：Context不是Activity");
