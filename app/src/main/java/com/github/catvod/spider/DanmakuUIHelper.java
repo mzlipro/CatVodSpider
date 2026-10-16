@@ -1554,20 +1554,59 @@ public class DanmakuUIHelper {
                 LinearLayout mainLayout = new LinearLayout(activity);
                 mainLayout.setOrientation(LinearLayout.VERTICAL);
                 mainLayout.setBackgroundColor(BACKGROUND_WHITE);
-                mainLayout.setPadding(dpToPx(activity, 24), dpToPx(activity, 20), dpToPx(activity, 24), dpToPx(activity, 20));
+                mainLayout.setPadding(dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12));
 
                 TextView title = new TextView(activity);
                 title.setText("弹幕交互模式");
-                title.setTextSize(24);
+                title.setTextSize(16);
                 title.setTextColor(PRIMARY_COLOR);
                 title.setGravity(Gravity.CENTER);
-                title.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 20));
+                title.setPadding(0, 0, 0, dpToPx(activity, 10));
                 title.setTypeface(null, android.graphics.Typeface.BOLD);
                 mainLayout.addView(title);
 
                 DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
                 String[] styles = DanmakuConfig.STYLE_OPTIONS;
                 String currentStyle = config.getDanmakuStyle();
+
+                // ====== 一行两个 GridLayout ======
+                GridLayout gridLayout = new GridLayout(activity);
+                gridLayout.setColumnCount(2);
+                gridLayout.setUseDefaultMargins(false);
+                gridLayout.setPadding(0, 0, 0, 0);
+
+                for (String style : styles) {
+                    Button styleBtn = createStyledButton(activity, buildDanmakuStyleOptionText(style),
+                            style.equals(currentStyle) ? PRIMARY_COLOR : GRAY_INACTIVE);
+                    styleBtn.setTextSize(11);
+                    styleBtn.setSingleLine(false);
+                    styleBtn.setMaxLines(2);
+                    styleBtn.setEllipsize(TextUtils.TruncateAt.END);
+                    styleBtn.setGravity(Gravity.CENTER);
+
+                    GridLayout.LayoutParams btnParams = new GridLayout.LayoutParams();
+                    btnParams.height = dpToPx(activity, 48);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        btnParams.width = 0;
+                        btnParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                        btnParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                    } else {
+                        btnParams.width = dpToPx(activity, 150);
+                    }
+                    int margin = dpToPx(activity, 4);
+                    btnParams.setMargins(margin, margin, margin, margin);
+                    styleBtn.setLayoutParams(btnParams);
+                    gridLayout.addView(styleBtn);
+
+                    styleBtn.setOnClickListener(v -> {
+                        config.setDanmakuStyle(style);
+                        DanmakuConfigManager.saveConfig(activity, config);
+                        Utils.safeShowToast(activity, "弹幕交互模式已切换为: " + config.getDanmakuStyleDisplayName());
+                        dialog.dismiss();
+                    });
+                }
+
+                mainLayout.addView(gridLayout);
 
                 // ====== 液态玻璃包装 ======
                 boolean isLiquidMode7 = config.isLiquidDanmakuStyle();
@@ -1592,23 +1631,6 @@ public class DanmakuUIHelper {
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
-                }
-
-                for (String style : styles) {
-                    Button styleBtn = createStyledButton(activity, buildDanmakuStyleOptionText(style),
-                            style.equals(currentStyle) ? PRIMARY_COLOR : GRAY_INACTIVE);
-                    LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 44));
-                    btnParams.setMargins(0, 0, 0, dpToPx(activity, 10));
-                    styleBtn.setLayoutParams(btnParams);
-                    mainLayout.addView(styleBtn);
-
-                    styleBtn.setOnClickListener(v -> {
-                        config.setDanmakuStyle(style);
-                        DanmakuConfigManager.saveConfig(activity, config);
-                        Utils.safeShowToast(activity, "弹幕交互模式已切换为: " + config.getDanmakuStyleDisplayName());
-                        dialog.dismiss();
-                    });
                 }
 
                 safeShowDialog(activity, dialog);
