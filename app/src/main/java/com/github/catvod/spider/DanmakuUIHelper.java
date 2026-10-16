@@ -2330,17 +2330,18 @@ public class DanmakuUIHelper {
                         liquidRoot.setBlurRadius(18f);
                         liquidRoot.setGlassAlpha(0.55f);
                         liquidRoot.setCornerRadius(24f);
-                    
-                        // mainLayout 不能有自己的背景色，否则直角会溢出
-                        mainLayout.setBackgroundColor(Color.TRANSPARENT);  // ← 确保这行存在
-                    
+                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT);
                         liquidRoot.addView(mainLayout, wrapParams);
                         builder.setView(liquidRoot);
+                    } else {
+                        // ====== 非液态模式：必须设置背景色 + setView ======
+                        mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
+                        builder.setView(mainLayout);
                     }
-    
+
                     final AlertDialog dialog = builder.create();
     
                     if (isTemplate3) {
