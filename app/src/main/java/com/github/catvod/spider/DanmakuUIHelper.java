@@ -2211,7 +2211,7 @@ public class DanmakuUIHelper {
                     DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
                     boolean isTemplate3 = config.isDarkGridDanmakuStyle();
                     boolean isModernPanel = config.isModernPanelDanmakuStyle();
-                    boolean isLiquid = FORCE_LIQUID_GLASS;
+                    boolean isLiquid = config.isLiquidDanmakuStyle();
     
                     AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                     LinearLayout mainLayout = new LinearLayout(activity);
