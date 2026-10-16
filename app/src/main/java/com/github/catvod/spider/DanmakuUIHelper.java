@@ -1575,6 +1575,9 @@ public class DanmakuUIHelper {
                 gridLayout.setUseDefaultMargins(false);
                 gridLayout.setPadding(0, 0, 0, 0);
 
+                // ====== 用数组引用 dialog，解决 lambda 中引用未定义变量 ======
+                final AlertDialog[] dialogRef = new AlertDialog[1];
+
                 for (String style : styles) {
                     Button styleBtn = createStyledButton(activity, buildDanmakuStyleOptionText(style),
                             style.equals(currentStyle) ? PRIMARY_COLOR : GRAY_INACTIVE);
@@ -1602,7 +1605,7 @@ public class DanmakuUIHelper {
                         config.setDanmakuStyle(style);
                         DanmakuConfigManager.saveConfig(activity, config);
                         Utils.safeShowToast(activity, "弹幕交互模式已切换为: " + config.getDanmakuStyleDisplayName());
-                        dialog.dismiss();
+                        if (dialogRef[0] != null) dialogRef[0].dismiss();   // ← 用 dialogRef
                     });
                 }
 
@@ -1625,6 +1628,7 @@ public class DanmakuUIHelper {
                 }
 
                 AlertDialog dialog = builder.create();
+                dialogRef[0] = dialog;   // ← 赋值到数组
 
                 if (isLiquidMode7) {
                     applyRealBlur(dialog);
