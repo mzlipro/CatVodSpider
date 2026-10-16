@@ -2006,7 +2006,7 @@ public class DanmakuUIHelper {
             DanmakuSpider.log("Activity已销毁或正在销毁，不显示搜索对话框");
             return;
         }
-
+    
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -2016,35 +2016,17 @@ public class DanmakuUIHelper {
                         DanmakuSpider.log("Activity已销毁，不显示搜索对话框");
                         return;
                     }
-
+    
                     DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
                     boolean isTemplate3 = config.isDarkGridDanmakuStyle();
                     boolean isModernPanel = config.isModernPanelDanmakuStyle();
-
+                    boolean isLiquid = config.isLiquidDanmakuStyle();
+    
                     AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                     LinearLayout mainLayout = new LinearLayout(activity);
                     mainLayout.setOrientation(LinearLayout.VERTICAL);
-                    // ====== 真液态玻璃背景 ======
-                    boolean isLiquid = config.isLiquidDanmakuStyle();
-                    if (isLiquid) {
-                        // 用 LiquidGlassView 作为根容器
-                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
-                        liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
-                        liquidRoot.setCornerRadius(24f);
-
-                        // 把原来的内容放进 LiquidGlassView
-                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT));
-
-                        builder.setView(liquidRoot);
-                    } else {
-                        mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
-                        builder.setView(mainLayout);
-                    }
                     mainLayout.setPadding(dpToPx(activity, 15), dpToPx(activity, 10), dpToPx(activity, 15), dpToPx(activity, 10));
-
+    
                     TextView title = new TextView(activity);
                     title.setText("Leo弹幕搜索");
                     title.setTextSize(16);
@@ -2053,12 +2035,12 @@ public class DanmakuUIHelper {
                     title.setTypeface(null, android.graphics.Typeface.BOLD);
                     title.setPadding(0, dpToPx(activity, 2), 0, dpToPx(activity, 5));
                     mainLayout.addView(title);
-
+    
                     LinearLayout searchLayout = new LinearLayout(activity);
                     searchLayout.setOrientation(LinearLayout.HORIZONTAL);
                     searchLayout.setPadding(0, 0, 0, dpToPx(activity, 4));
                     searchLayout.setGravity(Gravity.CENTER_VERTICAL);
-
+    
                     final EditText searchInput = new EditText(activity);
                     searchInput.setHint("输入关键词搜索弹幕...");
                     String initialKeyword = getStableSearchCacheKey(episodeInfo);
@@ -2072,18 +2054,18 @@ public class DanmakuUIHelper {
                     LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, dpToPx(activity, 44), 1);
                     inputParams.setMargins(0, 0, dpToPx(activity, 4), 0);
                     searchInput.setLayoutParams(inputParams);
-
+    
                     Button reverseBtn = isTemplate3 ?
                             createDarkSolidButton(activity, isReversed ? "倒序" : "升序", isReversed ? DARK_ACCENT_COLOR : DARK_TERTIARY_LIGHT) :
                             createStyledButton(activity, isReversed ? "倒序" : "升序", isReversed ? ACCENT_COLOR : TERTIARY_LIGHT);
                     reverseBtn.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(activity, 50), dpToPx(activity, 44)));
                     reverseBtn.setTextSize(16);
-
+    
                     Button searchBtn = isTemplate3 ?
                             createDarkSolidButton(activity, "搜索", DARK_BG_TERTIARY) :
                             createStyledButton(activity, "搜索", PRIMARY_COLOR);
                     searchBtn.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(activity, 70), dpToPx(activity, 44)));
-
+    
                     searchLayout.addView(searchInput);
                     searchLayout.addView(reverseBtn);
                     View separator = new View(activity);
@@ -2092,19 +2074,17 @@ public class DanmakuUIHelper {
                     searchLayout.addView(separator);
                     searchLayout.addView(searchBtn);
                     mainLayout.addView(searchLayout);
-
+    
                     LinearLayout tabContainer = new LinearLayout(activity);
                     tabContainer.setOrientation(LinearLayout.HORIZONTAL);
                     tabContainer.setGravity(Gravity.CENTER_VERTICAL);
                     tabContainer.setPadding(dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4));
                     tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
-                    // ====== 关键：宽度自适应内容，高度缩小 ======
                     LinearLayout.LayoutParams tabContainerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 17)); //来源框高度
+                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 17));
                     tabContainer.setLayoutParams(tabContainerParams);
                     tabContainer.setVisibility(View.GONE);
-
-                    // ====== 关键：包裹 HorizontalScrollView 支持左右滑动 ======
+    
                     HorizontalScrollView tabScroll = new HorizontalScrollView(activity);
                     tabScroll.setHorizontalScrollBarEnabled(false);
                     tabScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -2114,28 +2094,46 @@ public class DanmakuUIHelper {
                     tabScrollParams.setMargins(0, dpToPx(activity, 2), 0, dpToPx(activity, 8));
                     tabScroll.setLayoutParams(tabScrollParams);
                     mainLayout.addView(tabScroll);
-
+    
                     ScrollView resultScroll = new ScrollView(activity);
                     resultScroll.setBackgroundColor(isTemplate3 ? Color.TRANSPARENT : BACKGROUND_WHITE);
                     LinearLayout resultContainer = new LinearLayout(activity);
                     resultContainer.setOrientation(LinearLayout.VERTICAL);
                     resultContainer.setPadding(0, 10, 0, 0);
                     resultContainer.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-
+    
                     LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
                     scrollParams.weight = 1;
                     resultScroll.setLayoutParams(scrollParams);
-
+    
                     resultScroll.addView(resultContainer);
                     mainLayout.addView(resultScroll);
-
-                    builder.setView(mainLayout);
+    
+                    // ====== 所有子 View 添加完毕后，才决定用什么容器 setView ======
+                    if (isLiquid) {
+                        // 真液态玻璃模式
+                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                        liquidRoot.setBlurRadius(18f);
+                        liquidRoot.setGlassAlpha(0.55f);
+                        liquidRoot.setCornerRadius(24f);
+                        mainLayout.setBackgroundColor(Color.TRANSPARENT);
+    
+                        ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT);
+                        liquidRoot.addView(mainLayout, wrapParams);
+                        builder.setView(liquidRoot);
+                    } else {
+                        mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
+                        builder.setView(mainLayout);
+                    }
+    
                     final AlertDialog dialog = builder.create();
-
+    
                     if (isTemplate3) {
                         dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
                     }
-
+    
                     reverseBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -2149,7 +2147,7 @@ public class DanmakuUIHelper {
                             showResultsForTab(resultContainer, currentItems, activity, dialog);
                         }
                     });
-
+    
                     searchBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -2159,7 +2157,7 @@ public class DanmakuUIHelper {
                                 return;
                             }
                             currentSearchKeyword = keyword;
-
+    
                             String cacheKey = getStableSearchCacheKey(episodeInfo);
                             if (!keyword.equals(cacheKey)) {
                                 SharedPreferencesService.saveSearchKeywordCache(activity, cacheKey, keyword);
@@ -2168,7 +2166,7 @@ public class DanmakuUIHelper {
                                 SharedPreferencesService.saveSearchKeywordCache(activity, cacheKey, "");
                                 DanmakuSpider.log("已清空搜索缓存: " + cacheKey);
                             }
-
+    
                             resultContainer.removeAllViews();
                             tabContainer.removeAllViews();
                             tabContainer.setVisibility(View.GONE);
@@ -2178,17 +2176,15 @@ public class DanmakuUIHelper {
                             loading.setPadding(0, 20, 0, 20);
                             loading.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
                             resultContainer.addView(loading);
-
+    
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    // 创建新的 EpisodeInfo 用于手动搜索（使用用户输入的关键词）
                                     EpisodeInfo searchEpisodeInfo = new EpisodeInfo();
                                     List<String> names = new ArrayList<>();
                                     names.add(keyword);
                                     searchEpisodeInfo.setEpisodeNames(names);
                                     searchEpisodeInfo.setSearchCacheKey(getStableSearchCacheKey(episodeInfo));
-                                    // 如果原 episodeInfo 有集数信息，保留它
                                     if (episodeInfo != null && !TextUtils.isEmpty(episodeInfo.getEpisodeNum())) {
                                         searchEpisodeInfo.setEpisodeNum(episodeInfo.getEpisodeNum());
                                     }
@@ -2196,13 +2192,13 @@ public class DanmakuUIHelper {
                                     if (isReversed) {
                                         java.util.Collections.reverse(results);
                                     }
-
+    
                                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                                         @Override
                                         public void run() {
                                             resultContainer.removeAllViews();
                                             tabContainer.removeAllViews();
-
+    
                                             if (results.isEmpty()) {
                                                 tabContainer.setVisibility(View.GONE);
                                                 TextView empty = new TextView(activity);
@@ -2213,7 +2209,7 @@ public class DanmakuUIHelper {
                                                 resultContainer.addView(empty);
                                                 return;
                                             }
-
+    
                                             java.util.Map<String, List<DanmakuItem>> groupedResults = new java.util.LinkedHashMap<>();
                                             for (DanmakuItem item : results) {
                                                 String groupName = isModernPanel ? buildSearchResultGroupName(activity, item)
@@ -2223,10 +2219,10 @@ public class DanmakuUIHelper {
                                                 }
                                                 groupedResults.get(groupName).add(item);
                                             }
-
+    
                                             java.util.List<String> tabs = new java.util.ArrayList<>(groupedResults.keySet());
                                             java.util.Collections.sort(tabs);
-
+    
                                             if (isModernPanel) {
                                                 int selectedTabIndex = findInitialSearchTabIndex(tabs, groupedResults);
                                                 renderSearchSourceSelector(tabContainer, resultContainer, groupedResults, tabs,
@@ -2241,34 +2237,34 @@ public class DanmakuUIHelper {
                             }).start();
                         }
                     });
-
+    
                     safeShowDialog(activity, dialog);
-
-                    // ====== 真液态：开启窗口模糊 ======
+    
+                    // ====== 液态模式：开启窗口模糊 + 透明背景 ======
                     if (isLiquid) {
                         applyRealBlur(dialog);
-                        // 窗口设为透明才能看到模糊效果
                         if (dialog.getWindow() != null) {
                             dialog.getWindow().setBackgroundDrawable(
-                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                                    new android.graphics.drawable.ColorDrawable(0x00000000));
                         }
                     }
-
+    
                     android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
                     lp.copyFrom(dialog.getWindow().getAttributes());
                     lp.width = (int) (activity.getResources().getDisplayMetrics().widthPixels * config.getLpWidth());
                     lp.height = (int) (activity.getResources().getDisplayMetrics().heightPixels * config.getLpHeight());
                     lp.alpha = config.getLpAlpha();
                     dialog.getWindow().setAttributes(lp);
-
+    
                     String keywordToSearch = SharedPreferencesService.getSearchKeywordCache(activity, initialKeyword);
                     if (!TextUtils.isEmpty(keywordToSearch)) {
                         searchBtn.performClick();
                     }
-                
-                } catch (Exception e) {
+    
+                } catch (Throwable e) {
                     DanmakuSpider.log("显示搜索对话框异常: " + e.getMessage());
                     e.printStackTrace();
+                    Utils.safeShowToast(activity, "搜索框错误: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                 }
             }
         });
