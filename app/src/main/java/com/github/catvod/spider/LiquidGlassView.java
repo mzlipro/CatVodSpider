@@ -44,15 +44,10 @@ public class LiquidGlassView extends FrameLayout {
         mTintPaint.setAlpha((int) (mGlassAlpha * 255));
 
         mGradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mEdgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mEdgePaint.setStyle(Paint.Style.STROKE);
-        mEdgePaint.setStrokeWidth(dp(2));
-
-        mInnerShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mInnerShadowPaint.setStyle(Paint.Style.STROKE);
-        mInnerShadowPaint.setStrokeWidth(dp(16));
-
-        mShimmerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // 删除以下三行（不再使用）
+        // mEdgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // mInnerShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // mShimmerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     }
 
     @Override
@@ -63,15 +58,22 @@ public class LiquidGlassView extends FrameLayout {
 
         try {
             RectF rect = new RectF(0, 0, w, h);
+            float rx = dp((int) mCornerRadius);
+            float ry = dp((int) mCornerRadius);
 
+            // 1. 模糊背景
             drawBlurredBackground(canvas, w, h);
+
+            // 2. 玻璃底色
             mTintPaint.setAlpha((int) (mGlassAlpha * 255));
-            canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mTintPaint);
+            canvas.drawRoundRect(rect, rx, ry, mTintPaint);
+
+            // 3. 光线折射渐变
             drawRefractionGradient(canvas, rect);
-            drawTopHighlight(canvas, rect);
-            drawInnerShadow(canvas, rect);
+
+            // 4. 边缘高光（单层，干净）
             drawEdgeGlow(canvas, rect);
-            drawShimmer(canvas, rect);
+
         } catch (Throwable t) {
             canvas.drawColor(0xB3FFFFFF);
         }
@@ -143,21 +145,14 @@ public class LiquidGlassView extends FrameLayout {
     }
 
     /**
-     * 边缘高光：玻璃边缘折射光
+     * 边缘高光：单层干净描边
      */
     private void drawEdgeGlow(Canvas canvas, RectF rect) {
-        // 外边缘
-        mEdgePaint.setColor(0x55FFFFFF);
-        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mEdgePaint);
-
-        // 内边缘（更亮，模拟折射）
-        Paint innerEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
-        innerEdge.setStyle(Paint.Style.STROKE);
-        innerEdge.setStrokeWidth(dp(1));
-        innerEdge.setColor(0x88FFFFFF);
-        RectF innerRect = new RectF(rect.left + dp(2), rect.top + dp(2),
-                rect.right - dp(2), rect.bottom - dp(2));
-        canvas.drawRoundRect(innerRect, dp((int) mCornerRadius - 2), dp((int) mCornerRadius - 2), innerEdge);
+        Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
+        edge.setStyle(Paint.Style.STROKE);
+        edge.setStrokeWidth(dp(2));
+        edge.setColor(0x88FFFFFF);
+        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), edge);
     }
 
     /**
