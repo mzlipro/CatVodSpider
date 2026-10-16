@@ -51,6 +51,10 @@ public class DanmakuConfig {
      */
     public float lpAlpha;
     /**
+     * 液态玻璃透明度（只影响液态效果）
+     */
+    public float lpLiquidAlpha;   // ← 新增
+    /**
      * 自动推送弹幕开关
      */
     public boolean autoPushEnabled;
@@ -82,6 +86,7 @@ public class DanmakuConfig {
         lpWidth = 0.9f;
         lpHeight = 0.85f;
         lpAlpha = 0.9f;
+        lpLiquidAlpha = 0.55f;   // ← 新增，默认0.55
         autoPushEnabled = false;
         danmakuStyle = STYLE_MULTI_GRID;
         silentMode = true;
@@ -106,6 +111,9 @@ public class DanmakuConfig {
         }
         if (json.has("lpAlpha")) {
             setLpAlpha((float) json.optDouble("lpAlpha", lpAlpha));
+        }
+        if (json.has("lpLiquidAlpha")) {
+            setLpLiquidAlpha((float) json.optDouble("lpLiquidAlpha", lpLiquidAlpha));
         }
         if (json.has("autoPushEnabled")) {
             setAutoPushEnabled(json.optBoolean("autoPushEnabled", autoPushEnabled));
@@ -342,6 +350,14 @@ public class DanmakuConfig {
 
     public void setLpAlpha(float lpAlpha) {
         this.lpAlpha = lpAlpha;
+    }
+    
+    public float getLpLiquidAlpha() {
+        return lpLiquidAlpha;
+    }
+
+    public void setLpLiquidAlpha(float lpLiquidAlpha) {
+        this.lpLiquidAlpha = lpLiquidAlpha;
     }
 
     public boolean isAutoPushEnabled() {
