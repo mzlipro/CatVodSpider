@@ -276,7 +276,7 @@ public class DanmakuUIHelper {
                     if (isLiquidMode1) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
+                        liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
                         liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -439,7 +439,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode2) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -775,7 +775,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode3) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -1090,86 +1090,51 @@ public class DanmakuUIHelper {
                 LinearLayout mainLayout = new LinearLayout(activity);
                 mainLayout.setOrientation(LinearLayout.VERTICAL);
                 mainLayout.setBackgroundColor(BACKGROUND_WHITE);
-                mainLayout.setPadding(dpToPx(activity, 24), dpToPx(activity, 20), dpToPx(activity, 24), dpToPx(activity, 20));
+                mainLayout.setPadding(dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12), dpToPx(activity, 12));
 
                 TextView title = new TextView(activity);
                 title.setText("布局配置");
-                title.setTextSize(24);
+                title.setTextSize(16);
                 title.setTextColor(PRIMARY_COLOR);
                 title.setGravity(Gravity.CENTER);
-                title.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 20));
+                title.setPadding(0, 0, 0, dpToPx(activity, 10));
                 title.setTypeface(null, android.graphics.Typeface.BOLD);
                 mainLayout.addView(title);
 
                 DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
 
-                // 宽度配置行
-                LinearLayout widthLayout = new LinearLayout(activity);
-                widthLayout.setOrientation(LinearLayout.HORIZONTAL);
-                widthLayout.setGravity(Gravity.CENTER_VERTICAL);
+                // ====== GridLayout 一行两个 ======
+                GridLayout gridLayout = new GridLayout(activity);
+                gridLayout.setColumnCount(2);
+                gridLayout.setUseDefaultMargins(false);
+                gridLayout.setPadding(0, 0, 0, 0);
 
-                TextView widthLabel = new TextView(activity);
-                widthLabel.setText("宽度:");
-                widthLabel.setTextSize(14);
-                widthLabel.setTextColor(TEXT_PRIMARY);
-                widthLabel.setPadding(0, 0, dpToPx(activity, 10), 0);
+                // 宽度
+                gridLayout.addView(createLpGridItem(activity, "宽度:", "0.1 - 1.0",
+                        String.valueOf(config.getLpWidth()), false));
+                // 高度
+                gridLayout.addView(createLpGridItem(activity, "高度:", "0.1 - 1.0",
+                        String.valueOf(config.getLpHeight()), false));
+                // 透明度
+                gridLayout.addView(createLpGridItem(activity, "透明度:", "0.1 - 1.0",
+                        String.valueOf(config.getLpAlpha()), false));
+                // 液态透明度（新增）
+                gridLayout.addView(createLpGridItem(activity, "液态透明度:", "0.1 - 1.0",
+                        String.valueOf(config.getLpLiquidAlpha()), true));
 
-                EditText widthInput = new EditText(activity);
-                widthInput.setHint("0.1 - 1.0");
-                widthInput.setText(String.valueOf(config.getLpWidth()));
-                widthInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
-                        android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                mainLayout.addView(gridLayout);
 
-                widthLayout.addView(widthLabel);
-                widthLayout.addView(widthInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-                mainLayout.addView(widthLayout);
+                // 获取引用用于保存
+                EditText widthInput = (EditText) ((LinearLayout) gridLayout.getChildAt(0)).getChildAt(1);
+                EditText heightInput = (EditText) ((LinearLayout) gridLayout.getChildAt(1)).getChildAt(1);
+                EditText alphaInput = (EditText) ((LinearLayout) gridLayout.getChildAt(2)).getChildAt(1);
+                EditText liquidAlphaInput = (EditText) ((LinearLayout) gridLayout.getChildAt(3)).getChildAt(1);
 
-                // 高度配置行
-                LinearLayout heightLayout = new LinearLayout(activity);
-                heightLayout.setOrientation(LinearLayout.HORIZONTAL);
-                heightLayout.setGravity(Gravity.CENTER_VERTICAL);
-
-                TextView heightLabel = new TextView(activity);
-                heightLabel.setText("高度:");
-                heightLabel.setTextSize(14);
-                heightLabel.setTextColor(TEXT_PRIMARY);
-                heightLabel.setPadding(0, 0, dpToPx(activity, 10), 0);
-
-                EditText heightInput = new EditText(activity);
-                heightInput.setHint("0.1 - 1.0");
-                heightInput.setText(String.valueOf(config.getLpHeight()));
-                heightInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
-                        android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-
-                heightLayout.addView(heightLabel);
-                heightLayout.addView(heightInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-                mainLayout.addView(heightLayout);
-
-                // 透明度配置行
-                LinearLayout alphaLayout = new LinearLayout(activity);
-                alphaLayout.setOrientation(LinearLayout.HORIZONTAL);
-                alphaLayout.setGravity(Gravity.CENTER_VERTICAL);
-
-                TextView alphaLabel = new TextView(activity);
-                alphaLabel.setText("透明度:");
-                alphaLabel.setTextSize(14);
-                alphaLabel.setTextColor(TEXT_PRIMARY);
-                alphaLabel.setPadding(0, 0, dpToPx(activity, 10), 0);
-
-                EditText alphaInput = new EditText(activity);
-                alphaInput.setHint("0.1 - 1.0");
-                alphaInput.setText(String.valueOf(config.getLpAlpha()));
-                alphaInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
-                android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-
-                alphaLayout.addView(alphaLabel);
-                alphaLayout.addView(alphaInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-                mainLayout.addView(alphaLayout);
-
-
+                // 按钮
                 LinearLayout btnLayout = new LinearLayout(activity);
                 btnLayout.setOrientation(LinearLayout.HORIZONTAL);
                 btnLayout.setGravity(Gravity.CENTER);
+                btnLayout.setPadding(0, dpToPx(activity, 10), 0, 0);
 
                 Button saveBtn = createStyledButton(activity, "保存", PRIMARY_COLOR);
                 Button cancelBtn = createStyledButtonWithBorder(activity, "取消", PRIMARY_COLOR);
@@ -1177,13 +1142,11 @@ public class DanmakuUIHelper {
                 LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
                         0, dpToPx(activity, 44), 1);
                 btnParams.setMargins(dpToPx(activity, 6), 0, dpToPx(activity, 6), 0);
-
                 saveBtn.setLayoutParams(btnParams);
                 cancelBtn.setLayoutParams(btnParams);
 
                 btnLayout.addView(saveBtn);
                 btnLayout.addView(cancelBtn);
-
                 mainLayout.addView(btnLayout);
 
                 // ====== 液态玻璃包装 ======
@@ -1191,7 +1154,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode4) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(config.getLpLiquidAlpha());  // ← 联动液态透明度
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -1214,17 +1177,17 @@ public class DanmakuUIHelper {
                         float width = Float.parseFloat(widthInput.getText().toString());
                         float height = Float.parseFloat(heightInput.getText().toString());
                         float alpha = Float.parseFloat(alphaInput.getText().toString());
+                        float liquidAlpha = Float.parseFloat(liquidAlphaInput.getText().toString());
 
-                        if (width > 1.0f) width = 1.0f;
-                        if (width < 0.1f) width = 0.1f;
-                        if (height > 1.0f) height = 1.0f;
-                        if (height < 0.1f) height = 0.1f;
-                        if (alpha > 1.0f) alpha = 1.0f;
-                        if (alpha < 0.1f) alpha = 0.1f;
+                        width = Math.max(0.1f, Math.min(1.0f, width));
+                        height = Math.max(0.1f, Math.min(1.0f, height));
+                        alpha = Math.max(0.1f, Math.min(1.0f, alpha));
+                        liquidAlpha = Math.max(0.1f, Math.min(1.0f, liquidAlpha));
 
                         config.setLpWidth(width);
                         config.setLpHeight(height);
                         config.setLpAlpha(alpha);
+                        config.setLpLiquidAlpha(liquidAlpha);   // ← 保存液态透明度
                         DanmakuConfigManager.saveConfig(activity, config);
                         Utils.safeShowToast(activity, "布局配置已保存");
                         dialog.dismiss();
@@ -1236,10 +1199,56 @@ public class DanmakuUIHelper {
                 cancelBtn.setOnClickListener(v -> dialog.dismiss());
 
                 safeShowDialog(activity, dialog);
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * 布局配置网格项：标签 + 输入框
+     */
+    private static LinearLayout createLpGridItem(Activity activity, String label, String hint,
+                                                  String value, boolean isLiquid) {
+        LinearLayout item = new LinearLayout(activity);
+        item.setOrientation(LinearLayout.HORIZONTAL);
+        item.setGravity(Gravity.CENTER_VERTICAL);
+
+        GridLayout.LayoutParams itemParams = new GridLayout.LayoutParams();
+        itemParams.height = dpToPx(activity, 48);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            itemParams.width = 0;
+            itemParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        } else {
+            itemParams.width = dpToPx(activity, 160);
+        }
+        int margin = dpToPx(activity, 3);
+        itemParams.setMargins(margin, margin, margin, margin);
+        item.setLayoutParams(itemParams);
+
+        TextView labelView = new TextView(activity);
+        labelView.setText(label);
+        labelView.setTextSize(11);
+        labelView.setTextColor(isLiquid ? 0xFFE65100 : TEXT_PRIMARY);  // 液态透明度用橙色标签
+        labelView.setPadding(0, 0, dpToPx(activity, 4), 0);
+        item.addView(labelView);
+
+        EditText input = new EditText(activity);
+        input.setHint(hint);
+        input.setText(value);
+        input.setTextSize(11);
+        input.setSingleLine(true);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        input.setTextColor(TEXT_PRIMARY);
+        input.setHintTextColor(TEXT_TERTIARY);
+        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+                0, dpToPx(activity, 38), 1);
+        input.setLayoutParams(inputParams);
+        item.addView(input);
+
+        return item;
     }
 
     public static void showDanmakuOffsetDialog(Context ctx) {
@@ -1336,7 +1345,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode5) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -1484,7 +1493,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode6) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -1618,7 +1627,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode7) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -2049,7 +2058,7 @@ public class DanmakuUIHelper {
                 if (isLiquidLog) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -2248,7 +2257,6 @@ public class DanmakuUIHelper {
                     searchInput.setTextColor(isTemplate3 ? DARK_TEXT_PRIMARY : TEXT_PRIMARY);
                     LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, dpToPx(activity, 44), 1);
                     inputParams.setMargins(0, 0, dpToPx(activity, 4), 0);
-                    searchInput.setLayoutParams(inputParams);
                     if (isLiquid) {
                         final boolean liquidMode = isLiquid;
                         searchInput.setOnFocusChangeListener((v, hasFocus) -> {
@@ -2329,7 +2337,7 @@ public class DanmakuUIHelper {
                     if (isLiquid) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setGlassAlpha(0.55f);
+                        liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
@@ -3909,7 +3917,7 @@ public class DanmakuUIHelper {
                 if (isLiquidQR) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
-                    liquidRoot.setGlassAlpha(0.55f);
+                    liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -4530,7 +4538,7 @@ public class DanmakuUIHelper {
             // 液态玻璃容器
             LiquidGlassView liquidRoot = new LiquidGlassView(activity);
             liquidRoot.setBlurRadius(18f);
-            liquidRoot.setGlassAlpha(0.55f);
+            liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
             liquidRoot.setCornerRadius(24f);
             liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
