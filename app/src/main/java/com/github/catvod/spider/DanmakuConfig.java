@@ -18,10 +18,12 @@ public class DanmakuConfig {
     public static final String STYLE_DARK_GRID = "深色网格";
     public static final String STYLE_MODERN_PANEL = "新版面板";
     public static final String STYLE_MULTI_GRID = "多格模式";   // ← 新增这一行
+    public static final String STYLE_LIQUID = "液态模式";          // ← 新增
     public static final int DEFAULT_PROXY_PORT = 5575;
 
     public static final String[] STYLE_OPTIONS = {
-            STYLE_MULTI_GRID,       // ← 新增，放第一位
+            STYLE_MULTI_GRID,       // ← 新增多格，放第一位
+            STYLE_LIQUID,              // ← 新增液态
             STYLE_CLASSIC,
             STYLE_GRID,
             STYLE_DARK_GRID,
@@ -379,9 +381,14 @@ public class DanmakuConfig {
         return STYLE_MODERN_PANEL.equals(getDanmakuStyle());
     }
 
-    // ↓↓↓ 新增这个方法 ↓↓↓
+    // ↓↓↓ 新增多格方法方法 ↓↓↓
     public boolean isMultiGridDanmakuStyle() {
         return STYLE_MULTI_GRID.equals(getDanmakuStyle());
+    }
+
+    // ↓↓↓ 新增液态方法 ↓↓↓
+    public boolean isLiquidDanmakuStyle() {
+        return STYLE_LIQUID.equals(getDanmakuStyle());
     }
 
     public static String normalizeDanmakuStyle(String danmakuStyle) {
@@ -436,7 +443,7 @@ public class DanmakuConfig {
             return STYLE_MODERN_PANEL;
         }
 
-        // ↓↓↓ 新增这段 ↓↓↓
+        // ↓↓↓ 新增多格 ↓↓↓
         if (STYLE_MULTI_GRID.equals(style)
                 || "多格".equals(style)
                 || "多格模式".equals(style)
@@ -447,6 +454,16 @@ public class DanmakuConfig {
             return STYLE_MULTI_GRID;
         }
 
+        // ↓↓↓ 新增液态 ↓↓↓
+        if (STYLE_LIQUID.equals(style)
+                || "液态".equals(style)
+                || "liquid".equalsIgnoreCase(style)
+                || "liquid_glass".equalsIgnoreCase(style)
+                || "template6".equalsIgnoreCase(style)
+                || "template_6".equalsIgnoreCase(style)) {
+            return STYLE_LIQUID;
+        }
+        
         return STYLE_CLASSIC;
     }
 
