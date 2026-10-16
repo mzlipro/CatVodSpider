@@ -2024,11 +2024,24 @@ public class DanmakuUIHelper {
                     AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                     LinearLayout mainLayout = new LinearLayout(activity);
                     mainLayout.setOrientation(LinearLayout.VERTICAL);
-                    boolean isLiquid = config.isLiquidDanmakuStyle();  // ← 如果还没加这行
+                    // ====== 真液态玻璃背景 ======
+                    boolean isLiquid = config.isLiquidDanmakuStyle();
                     if (isLiquid) {
-                        mainLayout.setBackground(createLiquidGlassDrawable(activity));
+                        // 用 LiquidGlassView 作为根容器
+                        LiquidGlassView liquidRoot = new LiquidGlassView(activity);
+                        liquidRoot.setBlurRadius(18f);
+                        liquidRoot.setGlassAlpha(0.55f);
+                        liquidRoot.setCornerRadius(24f);
+
+                        // 把原来的内容放进 LiquidGlassView
+                        liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT));
+
+                        builder.setView(liquidRoot);
                     } else {
                         mainLayout.setBackgroundColor(isTemplate3 ? DARK_BG_PRIMARY : BACKGROUND_WHITE);
+                        builder.setView(mainLayout);
                     }
                     mainLayout.setPadding(dpToPx(activity, 15), dpToPx(activity, 10), dpToPx(activity, 15), dpToPx(activity, 10));
 
@@ -2230,9 +2243,16 @@ public class DanmakuUIHelper {
                     });
 
                     safeShowDialog(activity, dialog);
+
+                    // ====== 真液态：开启窗口模糊 ======
                     if (isLiquid) {
-    applyRealBlur(dialog);   // ← Android 12+ 真实模糊
-}
+                        applyRealBlur(dialog);
+                        // 窗口设为透明才能看到模糊效果
+                        if (dialog.getWindow() != null) {
+                            dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                        }
+                    }
 
                     android.view.WindowManager.LayoutParams lp = new android.view.WindowManager.LayoutParams();
                     lp.copyFrom(dialog.getWindow().getAttributes());
@@ -3932,56 +3952,47 @@ public class DanmakuUIHelper {
         }
     }
 
-    // ========== 液态模式专用 ==========
+
+    // ========== 液态模式专用（真液态玻璃）==========
 
     /**
-     * 液态玻璃背景 Drawable
-     */
-    private static android.graphics.drawable.Drawable createLiquidGlassDrawable(Activity activity) {
-        android.graphics.drawable.GradientDrawable glass = new android.graphics.drawable.GradientDrawable();
-        glass.setCornerRadius(dpToPx(activity, 20));
-        glass.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
-        glass.setColors(new int[]{
-                0xCCFFFFFF,
-                0xB3FFFFFF,
-                0xD9FFFFFF
-        });
-        glass.setStroke(dpToPx(activity, 2), 0x66FFFFFF);
-
-        android.graphics.drawable.GradientDrawable edgeHighlight = new android.graphics.drawable.GradientDrawable();
-        edgeHighlight.setCornerRadius(dpToPx(activity, 20));
-        edgeHighlight.setColor(android.graphics.Color.TRANSPARENT);
-        edgeHighlight.setStroke(dpToPx(activity, 1), 0xAAFFFFFF);
-
-        android.graphics.drawable.GradientDrawable outerGlow = new android.graphics.drawable.GradientDrawable();
-        outerGlow.setCornerRadius(dpToPx(activity, 22));
-        outerGlow.setColor(android.graphics.Color.TRANSPARENT);
-        outerGlow.setStroke(dpToPx(activity, 3), 0x22FFFFFF);
-
-        return new android.graphics.drawable.LayerDrawable(
-                new android.graphics.drawable.Drawable[]{outerGlow, glass, edgeHighlight});
-    }
-
-    /**
-     * 开启真实背景模糊（Android 12+）
+     * 开启窗口级真实背景模糊（Android 12+）
+     * 这是唯一能真正模糊视频画面的方式
      */
     private static void applyRealBlur(AlertDialog dialog) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             try {
                 android.view.Window window = dialog.getWindow();
                 if (window != null) {
-                    window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-                    window.setDimAmount(0.1f);
-                    window.setBackgroundBlurRadius(40);
+                    // 窗口透明，才能看到模糊后的背景
+                    window.setBackgroundDrawableResource(android.R.color.transparent);
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                    window.setDimAmount(0.15f);
+                    // 真实高斯模糊
+                    window.setBackgroundBlurRadius(60);
+                    window.getAttributes().setBlurBehindRadius(60);
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
                 }
             } catch (Exception e) {
                 DanmakuSpider.log("背景模糊不支持: " + e.getMessage());
+            }
+        } else {
+            // Android 12 以下：至少让窗口半透明
+            try {
+                android.view.Window window = dialog.getWindow();
+                if (window != null) {
+                    window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0x00000000));
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                    window.setDimAmount(0.3f);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
 
     /**
-     * 液态模式集数按钮：一行3个，玻璃质感，文字可换行
+     * 创建液态玻璃集数按钮（真液态版）
      */
     private static Button createLiquidGridResultButton(Activity activity, DanmakuItem item, AlertDialog dialog) {
         Button resultItem = new Button(activity);
@@ -4018,7 +4029,7 @@ public class DanmakuUIHelper {
         String currentDanmakuUrl = item.getDanmakuUrl();
         boolean isHighlighted = currentDanmakuUrl != null
                 && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
-        applyLiquidResultStyle(resultItem, isHighlighted, false);
+        applyLiquidResultStyle(activity, resultItem, isHighlighted, false);
 
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
         params.height = GridLayout.LayoutParams.WRAP_CONTENT;
@@ -4038,9 +4049,9 @@ public class DanmakuUIHelper {
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
-            applyLiquidResultStyle((Button) v, highlight, hasFocus);
-            v.setScaleX(hasFocus ? 1.03f : 1.0f);
-            v.setScaleY(hasFocus ? 1.03f : 1.0f);
+            applyLiquidResultStyle(activity, (Button) v, highlight, hasFocus);
+            v.setScaleX(hasFocus ? 1.05f : 1.0f);
+            v.setScaleY(hasFocus ? 1.05f : 1.0f);
         });
 
         resultItem.setOnClickListener(v -> {
@@ -4060,20 +4071,33 @@ public class DanmakuUIHelper {
     }
 
     /**
-     * 液态模式按钮样式：玻璃质感
-     * 焦点=橙色发光，推送中=绿色高亮，普通=半透明白玻璃
+     * 真液态按钮样式：玻璃质感 + 边缘高光 + 折射渐变
      */
-    private static void applyLiquidResultStyle(Button button, boolean highlighted, boolean focused) {
+    private static void applyLiquidResultStyle(Activity activity, Button button, boolean highlighted, boolean focused) {
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dpToPx(activity, 12));
+
         if (focused) {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0x99FFF3E0, 0xFFFF6B00, 3));
+            // 焦点：橙色玻璃发光
+            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+            bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800, 0xCCFFE0B2});
+            bg.setStroke(dpToPx(activity, 2), 0xFFFF6B00);
             button.setTextColor(0xFFE65100);
         } else if (highlighted) {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0x99E8F5E9, 0xFF34C759, 2));
-            button.setTextColor(0xFF1F7A3A);
+            // 推送中：绿色玻璃
+            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+            bg.setColors(new int[]{0xB3C8E6C9, 0x8866BB6A, 0xB3C8E6C9});
+            bg.setStroke(dpToPx(activity, 2), 0xFF34C759);
+            button.setTextColor(0xFF1B5E20);
         } else {
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0x66FFFFFF, 0x44FFFFFF, 1));
-            button.setTextColor(TEXT_PRIMARY);
+            // 普通：半透明玻璃
+            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+            bg.setColors(new int[]{0x88FFFFFF, 0x55FFFFFF, 0x77FFFFFF});
+            bg.setStroke(dpToPx(activity, 1), 0x44FFFFFF);
+            button.setTextColor(0xDD222222);
         }
+
+        button.setBackground(bg);
     }
     
     // 颜色加深辅助方法
