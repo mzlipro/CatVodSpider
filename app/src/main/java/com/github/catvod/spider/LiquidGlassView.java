@@ -61,73 +61,35 @@ public class LiquidGlassView extends FrameLayout {
         int h = getHeight();
         if (w == 0 || h == 0) return;
 
-        RectF rect = new RectF(0, 0, w, h);
+        try {
+            RectF rect = new RectF(0, 0, w, h);
 
-        // ====== 1. 高斯模糊背景 ======
-        drawBlurredBackground(canvas, w, h);
+            drawBlurredBackground(canvas, w, h);
+            mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+            canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mTintPaint);
+            drawRefractionGradient(canvas, rect);
+            drawTopHighlight(canvas, rect);
+            drawInnerShadow(canvas, rect);
+            drawEdgeGlow(canvas, rect);
+            drawShimmer(canvas, rect);
+        } catch (Throwable t) {
+            canvas.drawColor(0xB3FFFFFF);
+        }
 
-        // ====== 2. 玻璃底色 ======
-        mTintPaint.setAlpha((int) (mGlassAlpha * 255));
-        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mTintPaint);
-
-        // ====== 3. 光线折射渐变（顶部亮→底部暗）======
-        drawRefractionGradient(canvas, rect);
-
-        // ====== 4. 顶部高光线 ======
-        drawTopHighlight(canvas, rect);
-
-        // ====== 5. 内阴影（深度感）======
-        drawInnerShadow(canvas, rect);
-
-        // ====== 6. 边缘高光 ======
-        drawEdgeGlow(canvas, rect);
-
-        // ====== 7. 玻璃光泽斜线 ======
-        drawShimmer(canvas, rect);
-
-        // 绘制子视图
         super.onDraw(canvas);
     }
 
     /**
      * 高斯模糊背景：多级缩放实现真实模糊感
      */
+    /**
+     * 高斯模糊背景：安全实现，不递归
+     */
     private void drawBlurredBackground(Canvas canvas, int w, int h) {
         try {
-            if (getParent() instanceof View) {
-                View parent = (View) getParent();
-                if (mBlurCache == null || mNeedsBlur) {
-                    // 截取父视图区域进行缩放模糊
-                    Bitmap src = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-                    Canvas srcCanvas = new Canvas(src);
-                    parent.draw(srcCanvas);
-
-                    // 多级降采样模糊（scale越大越模糊）
-                    int scale = Math.max(2, (int) (mBlurRadius / 3));
-                    int sw = Math.max(1, w / scale);
-                    int sh = Math.max(1, h / scale);
-
-                    Bitmap small = Bitmap.createScaledBitmap(src, sw, sh, true);
-                    Bitmap blurred = Bitmap.createScaledBitmap(small, w, h, true);
-
-                    if (mBlurCache != null && !mBlurCache.isRecycled()) {
-                        mBlurCache.recycle();
-                    }
-                    mBlurCache = blurred;
-                    mNeedsBlur = false;
-
-                    src.recycle();
-                    small.recycle();
-                }
-
-                if (mBlurCache != null && !mBlurCache.isRecycled()) {
-                    Paint p = new Paint(Paint.FILTER_BITMAP_FLAG);
-                    p.setAlpha(200);
-                    canvas.drawBitmap(mBlurCache, 0, 0, p);
-                }
-            }
-        } catch (Exception e) {
-            // 模糊失败时用纯色兜底
+            // 直接画半透明底色，不截取父视图（避免递归崩溃）
+            canvas.drawColor(0xCCB0BEC5);  // 半透明灰蓝色，模拟模糊效果
+        } catch (Throwable t) {
             canvas.drawColor(0xCCEEF2F7);
         }
     }
