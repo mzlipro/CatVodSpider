@@ -2551,9 +2551,15 @@ public class DanmakuUIHelper {
 
         for (int i = 0; i < tabs.size(); i++) {
             String tabName = tabs.get(i);
-            Button tabBtn = isTemplate3 ?
-                    createDarkSolidButton(activity, tabName, DARK_PRIMARY_COLOR) :
-                    createStyledButton(activity, tabName, PRIMARY_COLOR);
+            Button tabBtn;
+            boolean isLiquidTab = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
+            if (isLiquidTab) {
+                tabBtn = createLiquidMenuButton(activity, tabName);  // 液态专用按钮
+            } else if (isTemplate3) {
+                tabBtn = createDarkSolidButton(activity, tabName, DARK_PRIMARY_COLOR);
+            } else {
+                tabBtn = createStyledButton(activity, tabName, PRIMARY_COLOR);
+            }
             tabBtn.setTag(tabName);
             tabBtn.setPadding(dpToPx(activity, 15), dpToPx(activity, 10), dpToPx(activity, 15), dpToPx(activity, 10));
 
@@ -2566,6 +2572,24 @@ public class DanmakuUIHelper {
                 public void onFocusChange(View v, boolean hasFocus) {
                     Object tag = v.getTag();
                     boolean active = tag instanceof Boolean && (Boolean) tag;
+                    boolean isLiquidTab = DanmakuConfigManager.getConfig(v.getContext()).isLiquidDanmakuStyle();
+                    if (isLiquidTab) {
+                        boolean isDarkTab = DanmakuConfigManager.getConfig(v.getContext()).isDarkMode();
+                        if (hasFocus) {
+                            v.setBackground(createLiquidGlassDrawable(v.getContext(), 0xFFFF6B00, 3));
+                            ((Button) v).setTextColor(0xFFE65100);
+                        } else if (active) {
+                            v.setBackground(createLiquidGlassDrawable(v.getContext(),
+                                    isDarkTab ? 0xFF00E5FF : 0xFF2196F3, 2));
+                            ((Button) v).setTextColor(isDarkTab ? 0xFF00E5FF : 0xFF1565C0);
+                        } else {
+                            v.setBackground(createLiquidGlassDrawable(v.getContext(),
+                                    isDarkTab ? 0x33FFFFFF : 0x44FFFFFF, 1));
+                            ((Button) v).setTextColor(isDarkTab ? 0xFFCCCCCC : 0xDD333333);
+                        }
+                        return;
+                    }
+                    // 原有逻辑
                     if (isTemplate3) {
                         ((Button) v).setTextColor(hasFocus ? Color.WHITE : DARK_TEXT_PRIMARY);
                         v.setBackground(createRoundedTransparentDrawable(hasFocus ? 0xFFFF6B00 :
@@ -2606,11 +2630,11 @@ public class DanmakuUIHelper {
                 boolean isDarkT = cfg.isDarkMode();
                 if (button.hasFocus()) {
                     button.setBackground(createLiquidGlassDrawable(button.getContext(), 0xFFFF6B00, 3));
-                    button.setTextColor(Color.WHITE);
+                    button.setTextColor(0xFFE65100);          // 橙色文字
                 } else if (isActive) {
                     button.setBackground(createLiquidGlassDrawable(button.getContext(),
                             isDarkT ? 0xFF00E5FF : 0xFF2196F3, 2));
-                    button.setTextColor(Color.WHITE);
+                    button.setTextColor(isDarkT ? 0xFF00E5FF : 0xFF1565C0);  // ← 深色用青色，浅色用深蓝
                 } else {
                     button.setBackground(createLiquidGlassDrawable(button.getContext(),
                             isDarkT ? 0x33FFFFFF : 0x44FFFFFF, 1));
@@ -2620,7 +2644,7 @@ public class DanmakuUIHelper {
             }
         }
 
-        // 原有逻辑不变
+        // 原有逻辑
         if (isTemplate3) {
             button.setBackground(createRoundedTransparentDrawable(isActive ? DARK_PRIMARY_COLOR : DARK_INACTIVE));
             button.setTextColor(DARK_TEXT_PRIMARY);
@@ -4506,21 +4530,21 @@ public class DanmakuUIHelper {
             android.graphics.drawable.GradientDrawable bg2 = new android.graphics.drawable.GradientDrawable();
             bg2.setCornerRadius(dpToPx(activity, 12));
             if (hasFocus) {
-                bg2.setColors(new int[]{0xFFFF6B00, 0xFFE65100, 0xFFFF6B00});
-                bg2.setStroke(dpToPx(activity, 3), isDark ? 0xFF00E5FF : 0xFFFFFFFF);
-                ((Button) v).setTextColor(Color.WHITE);
+                bg2.setColors(new int[]{0x33FFFFFF, 0x22FFFFFF, 0x33FFFFFF});  // 微透明白底
+                bg2.setStroke(dpToPx(activity, 3), 0xFFFF6B00);                // 橙色空心边框
+                ((Button) v).setTextColor(0xFFE65100);                         // 橙色文字
             } else {
                 bg2.setColors(new int[]{
                     (tintColor & 0x00FFFFFF) | 0xCC000000,
                     (tintColor & 0x00FFFFFF) | 0x88000000,
                     (tintColor & 0x00FFFFFF) | 0xCC000000
                 });
-                bg2.setStroke(dpToPx(activity, 2), isDark ? 0x44FFFFFF : 0x99FFFFFF);
+                bg2.setStroke(dpToPx(activity, 2), 0x99FFFFFF);
                 ((Button) v).setTextColor(Color.WHITE);
             }
             v.setBackground(bg2);
-            v.setScaleX(hasFocus ? 1.05f : 1.0f);
-            v.setScaleY(hasFocus ? 1.05f : 1.0f);
+            v.setScaleX(hasFocus ? 1.03f : 1.0f);
+            v.setScaleY(hasFocus ? 1.03f : 1.0f);
         });
 
         return button;
