@@ -2513,6 +2513,7 @@ public class DanmakuScanner {
             optionsList.add("📱 远程搜索/输入");
             optionsList.add("🔄 Auto 推送开关");
             optionsList.add("🔇 静默模式");
+            optionsList.add("🌓 " + (DanmakuConfigManager.getConfig(activity).isDarkMode() ? "☀️浅色模式" : "🌙深色模式"));  // ← 新增
             optionsList.add("💬 弹幕配置");
             optionsList.add("🗂 缓存管理");
             optionsList.add("🎨 布局配置");
@@ -2571,32 +2572,41 @@ public class DanmakuScanner {
                                             configSilent.isSilentMode() ? "静默模式已开启" : "静默模式已关闭");
                                     break;
 
-                                case 3:
+                                case 3: // 深色模式切换（新增）
+                                    DanmakuConfig darkConfig = DanmakuConfigManager.getConfig(activity);
+                                    darkConfig.setDarkMode(!darkConfig.isDarkMode());
+                                    DanmakuConfigManager.saveConfig(activity, darkConfig);
+                                    DanmakuSpider.log("深色模式切换：" + darkConfig.isDarkMode());
+                                    Utils.safeShowToast(activity,
+                                            darkConfig.isDarkMode() ? "已切换到深色模式" : "已切换到浅色模式");
+                                    break;
+        
+                                case 4: // 弹幕设置（原来是 case 3）
                                     DanmakuSpider.log("[菜单] 打开弹幕设置");
                                     DanmakuUIHelper.showConfigDialog(activity);
                                     break;
-                                case 4:
+                                case 5: // 缓存管理（原来是 case 4）
                                     DanmakuSpider.log("[菜单] 打开缓存管理");
                                     DanmakuUIHelper.showCacheManagerDialog(activity);
                                     break;
-                                case 5:
+                                case 6: // 布局配置（原来是 case 5）
                                     DanmakuSpider.log("[菜单] 打开布局配置");
                                     DanmakuUIHelper.showLpConfigDialog(activity);
                                     break;
-                                case 6:
+                                case 7: // 弹幕交互模式（原来是 case 6）
                                     DanmakuSpider.log("[菜单] 打开弹幕交互模式");
                                     DanmakuUIHelper.showDanmakuStyleDialog(activity);
                                     break;
-                                case 7:
+                                case 8: // 弹幕时间偏移（原来是 case 7）
                                     DanmakuSpider.log("[菜单] 打开弹幕时间偏移");
                                     DanmakuUIHelper.showDanmakuOffsetDialog(activity);
                                     break;
-                                case 8:
+                                case 9: // 查看日志（原来是 case 8）
                                     DanmakuSpider.log("[菜单] 打开统一日志查看器");
                                     DanmakuUIHelper.showUnifiedLogDialog(activity);
                                     break;
-
-                                case 9:
+        
+                                case 10: // 代理状态（原来是 case 9）
                                     String sPTypeName = ProxyManager.getProxyTypeName();
                                     String sPStatus = ProxyManager.getProxyStatusText();
                                     String sPHealth = ProxyManager.isProxyRunning() && ProxyManager.isProxyHealthy() ? "健康" : ProxyManager.isSwitching() ? "" : "异常";
@@ -2605,13 +2615,13 @@ public class DanmakuScanner {
                                             "代理类型: " + sPTypeName + "\n状态: " + sPStatus;
                                     Utils.safeShowToast(activity, sToastMsg);
                                     break;
-
-                                case 10:
+        
+                                case 11: // 代理端口（原来是 case 10）
                                     DanmakuSpider.log("[菜单] 打开代理端口设置");
                                     DanmakuUIHelper.showProxyPortDialog(activity);
                                     break;
-
-                                case 11:
+        
+                                case 12: // 切换代理（原来是 case 11）
                                     if (ProxyManager.isSwitching()) {
                                         Utils.safeShowToast(activity, "代理切换中，请稍候...");
                                         break;
@@ -2628,8 +2638,8 @@ public class DanmakuScanner {
                                         Utils.safeShowToast(activity, "切换到Java代理中，请稍候...");
                                     }
                                     break;
-
-                                case 12:
+        
+                                case 13: // 重启代理（原来是 case 12）
                                     if (ProxyManager.isSwitching()) {
                                         Utils.safeShowToast(activity, "代理操作中，请稍候...");
                                         break;
