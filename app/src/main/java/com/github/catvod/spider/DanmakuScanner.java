@@ -2510,14 +2510,15 @@ public class DanmakuScanner {
         try {
             // 构建菜单选项列表
             java.util.List<String> optionsList = new java.util.ArrayList<>();
+            DanmakuConfig menuConfig = DanmakuConfigManager.getConfig(activity);
             optionsList.add("📱 远程搜索/输入");
-            optionsList.add("🔄 Auto 推送开关");
-            optionsList.add("🔇 静默模式");
+            optionsList.add("🎯 自动推送 [" + (menuConfig.isAutoPushEnabled() ? "✅开启" : "❌关闭") + "]");
+            optionsList.add("🔔 提醒通知 [" + (!menuConfig.isSilentMode() ? "✅开启" : "❌关闭") + "]");
             optionsList.add("🌓 " + (DanmakuConfigManager.getConfig(activity).isDarkMode() ? "☀️浅色模式" : "🌙深色模式"));  // ← 新增
-            optionsList.add("💬 弹幕配置");
+            optionsList.add("✨ 弹幕配置");
             optionsList.add("🗂 缓存管理");
             optionsList.add("🎨 布局配置");
-            optionsList.add("✨ 弹幕交互模式");
+            optionsList.add("🧩 主题模式");
             optionsList.add("⏱ 弹幕时间偏移");
             optionsList.add("📝 查看日志");
 
@@ -2567,9 +2568,9 @@ public class DanmakuScanner {
                                     DanmakuConfig configSilent = DanmakuConfigManager.getConfig(activity);
                                     configSilent.setSilentMode(!configSilent.isSilentMode());
                                     DanmakuConfigManager.saveConfig(activity, configSilent);
-                                    DanmakuSpider.log("静默模式状态切换：" + configSilent.isSilentMode());
+                                    DanmakuSpider.log("提醒通知状态切换：" + configSilent.isSilentMode());
                                     Utils.safeShowToast(activity,
-                                            configSilent.isSilentMode() ? "静默模式已开启" : "静默模式已关闭");
+                                            configSilent.isSilentMode() ? "提醒通知已开启" : "提醒通知已关闭");
                                     break;
 
                                 case 3: // 深色模式切换（新增）
