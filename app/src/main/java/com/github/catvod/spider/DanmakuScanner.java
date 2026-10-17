@@ -2332,7 +2332,7 @@ public class DanmakuScanner {
             } else {
                 // 创建新的Leo弹幕按钮
                 btn = new TextView(parent.getContext());
-                btn.setText("Leo弹幕");
+                btn.setText("🍭弹幕");                    // ← 改名
                 btn.setTag("danmu_button");
                 btn.setTextColor(anchor.getTextColors());
                 btn.setTextSize(0, anchor.getTextSize());
@@ -2340,9 +2340,9 @@ public class DanmakuScanner {
                 btn.setPadding(20, 10, 20, 10);
                 btn.setSingleLine(true);
 
-                // 修复焦点问题 - 添加必要的焦点设置
+                // 焦点设置 - 电视遥控器可用，手机一次点击生效
                 btn.setFocusable(true);
-                btn.setFocusableInTouchMode(true);
+                btn.setFocusableInTouchMode(false);       // ← 改为 false，一次点击生效
                 btn.setClickable(true);
 
                 // 设置背景（使用锚点的背景）
