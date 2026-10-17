@@ -67,6 +67,10 @@ public class DanmakuConfig {
      */
     public boolean silentMode;
     /**
+     * 深色模式开关（强制白色界面变为深色）
+     */
+    public boolean darkMode;   // ← 新增
+    /**
      * 弹幕时间偏移，单位毫秒。正数延后，负数提前。
      */
     public int danmakuTimeOffsetMs;
@@ -90,6 +94,7 @@ public class DanmakuConfig {
         autoPushEnabled = false;
         danmakuStyle = STYLE_MULTI_GRID;
         silentMode = true;
+        darkMode = false;   // ← 新增，默认浅色
         danmakuTimeOffsetMs = 0;
         proxyType = 0;
         proxyPort = DEFAULT_PROXY_PORT;
@@ -123,6 +128,9 @@ public class DanmakuConfig {
         }
         if (json.has("silentMode")) {
             setSilentMode(json.optBoolean("silentMode", silentMode));
+        }
+        if (json.has("darkMode")) {
+            setDarkMode(json.optBoolean("darkMode", darkMode));
         }
         if (json.has("danmakuTimeOffsetMs")) {
             setDanmakuTimeOffsetMs(json.optInt("danmakuTimeOffsetMs", danmakuTimeOffsetMs));
@@ -491,6 +499,21 @@ public class DanmakuConfig {
         this.silentMode = silentMode;
     }
 
+    public boolean isDarkMode() {
+        return darkMode;
+    }
+
+    public void setDarkMode(boolean darkMode) {
+        this.darkMode = darkMode;
+    }
+
+    /**
+     * 是否使用深色UI（深色网格 或 手动深色模式）
+     */
+    public boolean isDarkUI() {
+        return isDarkGridDanmakuStyle() || darkMode;
+    }
+    
     public int getDanmakuTimeOffsetMs() {
         if (danmakuTimeOffsetMs > 600000) return 600000;
         if (danmakuTimeOffsetMs < -600000) return -600000;
