@@ -2218,7 +2218,7 @@ public class DanmakuUIHelper {
                     }
     
                     DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-                    boolean isTemplate3 = config.isDarkGridDanmakuStyle();
+                    boolean isTemplate3 = config.isDarkUI();
                     boolean isModernPanel = config.isModernPanelDanmakuStyle();
                     boolean isLiquid = config.isLiquidDanmakuStyle();
     
@@ -3103,7 +3103,7 @@ public class DanmakuUIHelper {
         sortAnimeTitlesByKeyword(animeTitles);
 
         DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
-        boolean isTemplate3 = config.isDarkGridDanmakuStyle();
+        boolean isTemplate3 = config.isDarkUI();
         boolean isMultiGrid = config.isMultiGridDanmakuStyle();   //新增多格
         boolean isLiquid = config.isLiquidDanmakuStyle();      // ← 新增液态
         boolean useGrid = config.isGridDanmakuStyle() || isMultiGrid || isLiquid;  // ← 多格-液态也走网格
