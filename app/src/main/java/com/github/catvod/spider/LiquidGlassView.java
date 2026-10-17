@@ -1,262 +1,620 @@
 package com.github.catvod.spider;
 
+import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Outline;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.RuntimeShader;
+import android.graphics.Shader;
 import android.os.Build;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 /**
- * 真液态玻璃效果容器
- * 实现高斯模糊 + 渐变折射 + 边缘高光 + 内阴影
+ * 液态玻璃（Liquid Glass）效果容器 —— AGSL 版
+ *
+ * 实现折射、色散、轮廓光、玻璃底色、深浅色双模式、表面光泽、内阴影、边缘描边。
+ * API 33+ 使用 AGSL RuntimeShader（GPU 单 pass），低版本 Canvas 兜底。
  */
 public class LiquidGlassView extends FrameLayout {
 
-    // 新增：深色模式标记
+    private static final String TAG = "LiquidGlassView";
+
+    // ====================== AGSL Shader ======================
+
+    private static final String GLASS_SHADER =
+        "uniform shader background;" +
+        "uniform vec2  uResolution;" +
+        "uniform float uRadius;" +
+        "uniform float uStrengthUV;" +
+        "uniform float uDispersionStrength;" +
+        "uniform float uHighlightStrength;" +
+        "uniform vec2  uRefractionCenter;" +
+        "uniform float uRefractionRadiusScale;" +
+        "uniform float uHighlightWidth;" +
+        "uniform float uGlassAlpha;" +
+        "uniform vec4  uGlassTint;" +
+        "uniform float uTime;" +
+        "uniform float uBreathing;" +
+        "uniform vec4  uHighlightColor;" +
+        "uniform float uShimmer;" +
+        "uniform float uInnerShadow;" +
+        "uniform float uEdgeWidth;" +
+        "uniform vec4  uEdgeColor;" +
+        "\n" +
+        "const float PI = 3.14159265359;\n" +
+        "\n" +
+        "vec2 displacement(vec2 uv) {\n" +
+        "    vec2 halfSize = uResolution * 0.5 - uRadius;\n" +
+        "    vec2 d = uv - uResolution * 0.5;\n" +
+        "    vec2 q = abs(d) - halfSize;\n" +
+        "    float outside = length(max(q, 0.0));\n" +
+        "    float inside = min(max(q.x, q.y), 0.0);\n" +
+        "    float sdf = outside + inside;\n" +
+        "    vec2 base = sign(d) * (1.0 - smoothstep(-uRadius, 0.0, sdf));\n" +
+        "    return clamp(base, -1.0, 1.0);\n" +
+        "}\n" +
+        "\n" +
+        "float highlightFactor(vec2 uv, vec2 normal, out bool lit) {\n" +
+        "    float normalLen = length(normal);\n" +
+        "    lit = false;\n" +
+        "    if (normalLen < 1.0 - uHighlightStrength) {\n" +
+        "        return 0.0;\n" +
+        "    }\n" +
+        "    lit = true;\n" +
+        "    float g = normal.y * 0.5 + 0.5;\n" +
+        "    float span = uHighlightWidth;\n" +
+        "    float leftCenter  = 191.0 / 255.0;\n" +
+        "    float rightCenter = 1.0 - leftCenter;\n" +
+        "    float opacity = 0.0;\n" +
+        "    if (normal.x > 0.0) {\n" +
+        "        opacity = clamp(1.0 - abs(g - leftCenter) / span, 0.0, 1.0);\n" +
+        "    } else if (normal.x < 0.0) {\n" +
+        "        opacity = clamp(1.0 - abs(g - rightCenter) / span, 0.0, 1.0);\n" +
+        "    }\n" +
+        "    opacity *= (1.0 + uBreathing * sin(uTime * 2.0));\n" +
+        "    return clamp(opacity, 0.0, 1.0);\n" +
+        "}\n" +
+        "\n" +
+        "vec4 main(vec2 fragCoord) {\n" +
+        "    vec2 uv = fragCoord / uResolution;\n" +
+        "    vec2 px = fragCoord;\n" +
+        "    vec2 normal = displacement(px);\n" +
+        "    if (uRefractionRadiusScale != 1.0) {\n" +
+        "        vec2 local = (px - uRefractionCenter) / uRefractionRadiusScale;\n" +
+        "        normal = displacement(uRefractionCenter + local);\n" +
+        "    }\n" +
+        "    float aspect = uResolution.x / max(uResolution.y, 1.0);\n" +
+        "    vec2 offsetUV = normal * uStrengthUV * vec2(1.0, -aspect);\n" +
+        "    vec2 baseUV = px + offsetUV * uResolution.x;\n" +
+        "    vec4 bgColor = background.eval(baseUV);\n" +
+        "    vec4 glassColor = mix(bgColor, uGlassTint, uGlassAlpha);\n" +
+        "    if (uDispersionStrength > 0.0) {\n" +
+        "        vec4 rC = background.eval(baseUV + offsetUV * uDispersionStrength * uResolution.x);\n" +
+        "        vec4 bC = background.eval(baseUV - offsetUV * uDispersionStrength * uResolution.x);\n" +
+        "        vec3 dColor = vec3(rC.r, bgColor.g, bC.b);\n" +
+        "        glassColor.rgb = mix(glassColor.rgb, dColor, uGlassAlpha);\n" +
+        "    }\n" +
+        "    bool lit;\n" +
+        "    float hl = highlightFactor(px, normal, lit);\n" +
+        "    if (lit) {\n" +
+        "        glassColor = mix(glassColor, uHighlightColor, clamp(hl, 0.0, 1.0));\n" +
+        "    }\n" +
+        "    if (uShimmer > 0.0) {\n" +
+        "        float ang = PI * 0.28;\n" +
+        "        vec2 dir = vec2(cos(ang), sin(ang));\n" +
+        "        float t = dot(uv - 0.5, dir) + 0.5;\n" +
+        "        float sweep = smoothstep(0.30, 0.42, t) * (1.0 - smoothstep(0.42, 0.55, t));\n" +
+        "        glassColor.rgb += uShimmer * sweep * 0.35;\n" +
+        "    }\n" +
+        "    if (uInnerShadow > 0.0) {\n" +
+        "        vec2 halfSizeIS = uResolution * 0.5 - uRadius;\n" +
+        "        vec2 dIS = px - uResolution * 0.5;\n" +
+        "        vec2 qIS = abs(dIS) - halfSizeIS;\n" +
+        "        float outsideIS = length(max(qIS, 0.0));\n" +
+        "        float insideIS = min(max(qIS.x, qIS.y), 0.0);\n" +
+        "        float sdfIS = outsideIS + insideIS;\n" +
+        "        float sh = 1.0 - smoothstep(-uRadius, 0.0, sdfIS);\n" +
+        "        glassColor.rgb *= (1.0 - uInnerShadow * sh * 0.45);\n" +
+        "    }\n" +
+        "    if (uEdgeWidth > 0.0) {\n" +
+        "        vec2 halfSizeE = uResolution * 0.5 - uRadius;\n" +
+        "        vec2 dE = px - uResolution * 0.5;\n" +
+        "        vec2 qE = abs(dE) - halfSizeE;\n" +
+        "        float outsideE = length(max(qE, 0.0));\n" +
+        "        float insideE = min(max(qE.x, qE.y), 0.0);\n" +
+        "        float sdfE = outsideE + insideE;\n" +
+        "        float edge = 1.0 - smoothstep(0.0, max(uEdgeWidth, 1.0), abs(sdfE));\n" +
+        "        glassColor = mix(glassColor, uEdgeColor, edge * uEdgeColor.a);\n" +
+        "    }\n" +
+        "    glassColor.a *= uGlassAlpha;\n" +
+        "    return vec4(glassColor.rgb * glassColor.a, glassColor.a);\n" +
+        "}\n";
+
+    private static final String FLAT_BG_SHADER =
+        "uniform vec4 uColor;" +
+        "vec4 main(vec2 fragCoord) { return uColor; }";
+
+    // ====================== 状态字段 ======================
+
     private boolean mDarkMode = false;
-    // 效果参数
-    private float mBlurRadius = 18f;
+
+    private float mRefractionStrength = 0.03f;
+    private float mDispersionStrength = 0.03f;
+    private float mHighlightStrength  = 0.10f;
     private float mGlassAlpha = 0.55f;
-    private int mTintColor = 0xFFFFFFFF;
+    private int   mTintColor = 0xFFFFFFFF;
     private float mCornerRadius = 24f;
 
-    // 画笔
-    private Paint mTintPaint;
-    private Paint mGradientPaint;
-    private Paint mEdgePaint;
-    private Paint mInnerShadowPaint;
-    private Paint mShimmerPaint;
+    private boolean mInteractiveRefraction = false;
+    private float mRefractionCenterX = 0.5f, mRefractionCenterY = 0.5f;
+    private float mRefractionRadiusScale = 1.0f;
 
-    // 模糊缓存
-    private Bitmap mBlurCache;
-    private boolean mNeedsBlur = true;
+    private boolean mBreathing = false;
+    private long mStartTime = System.currentTimeMillis() / 1000L;
+    private float mBreathPhase = 0f;
+    private ValueAnimator mBreathAnimator;
+
+    private Bitmap mBackgroundBitmap;
+    private Shader mBackgroundShader;
+    private boolean mDirtySampling = true;
+
+    private final List<Ripple> mRipples = new ArrayList<>();
+    private static final int MAX_RIPPLES = 3;
+
+    private final Paint mTintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mGradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mEdgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mInnerShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mShimmerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mRipplePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mShaderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    private RuntimeShader mGlassShader;
+    private RuntimeShader mFlatBgShader;
+    private boolean mAgslAvailable = false;
+
+    private float mGlassInset = 0f;
+    private boolean mRefractionEnabled = true;
+
+    // ====================== 构造 & 初始化 ======================
 
     public LiquidGlassView(Context context) {
         super(context);
         init();
     }
 
-    public void setDarkMode(boolean dark) {
-        mDarkMode = dark;
-        mNeedsBlur = true;
-        invalidate();
-    }
-    
     private void init() {
         setWillNotDraw(false);
         setClipChildren(false);
+        setFocusable(false);
 
-        // ====== 新增：裁剪到圆角 ======
         setClipToOutline(true);
         setOutlineProvider(new ViewOutlineProvider() {
             @Override
-            public void getOutline(View view, android.graphics.Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(),
-                        dp((int) mCornerRadius));
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(mCornerRadius));
             }
         });
 
-        mTintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mTintPaint.setColor(mTintColor);
         mTintPaint.setAlpha((int) (mGlassAlpha * 255));
 
-        mGradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                mGlassShader = new RuntimeShader(GLASS_SHADER);
+                mFlatBgShader = new RuntimeShader(FLAT_BG_SHADER);
+                mAgslAvailable = true;
+                Log.i(TAG, "AGSL RuntimeShader 初始化成功");
+            } catch (Throwable t) {
+                mAgslAvailable = false;
+                Log.w(TAG, "AGSL 不可用，回退到 Canvas 路径: " + t.getMessage());
+            }
+        } else {
+            mAgslAvailable = false;
+            Log.i(TAG, "API < 33，使用 Canvas 路径");
+        }
+    }
+
+    // ====================== 绘制 ======================
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        mGlassInset = Math.min(w, h) * 0.06f;
+        mDirtySampling = true;
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    public void onDraw(Canvas canvas) {
         int w = getWidth();
         int h = getHeight();
         if (w == 0 || h == 0) return;
 
         try {
-            RectF rect = new RectF(0, 0, w, h);
-            float rx = dp((int) mCornerRadius);
-            float ry = dp((int) mCornerRadius);
-
-            // 1. 模糊背景
-            drawBlurredBackground(canvas, w, h);
-
-            // 2. 玻璃底色（深色模式用黑色半透明）
-            if (mDarkMode) {
-                mTintPaint.setColor(0xFF1A1A2E);
-                mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+            if (mAgslAvailable && mRefractionEnabled) {
+                drawWithShader(canvas, w, h);
             } else {
-                mTintPaint.setColor(mTintColor);
-                mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+                drawWithCanvas(canvas, w, h);
             }
-            canvas.drawRoundRect(rect, rx, ry, mTintPaint);
-
-            // 3. 光线折射渐变
-            drawRefractionGradient(canvas, rect);
-
-            // 4. 边缘高光
-            drawEdgeGlow(canvas, rect);
-
+            drawRipples(canvas);
         } catch (Throwable t) {
+            Log.e(TAG, "绘制失败，兜底纯色: " + t.getMessage());
             canvas.drawColor(mDarkMode ? 0xCC1A1A2E : 0xB3FFFFFF);
         }
 
         super.onDraw(canvas);
     }
 
-    /**
-     * 高斯模糊背景：多级缩放实现真实模糊感
-     */
-    /**
-     * 高斯模糊背景：安全实现，不递归
-     */
-    private void drawBlurredBackground(Canvas canvas, int w, int h) {
-        try {
-            if (mDarkMode) {
-                canvas.drawColor(0xCC0D0D1A);  // 深色：深蓝黑
-            } else {
-                canvas.drawColor(0xCCB0BEC5);  // 浅色：灰蓝
-            }
-        } catch (Throwable t) {
-            canvas.drawColor(mDarkMode ? 0xCC0D0D1A : 0xCCEEF2F7);
+    // -------------------- AGSL 主路径 --------------------
+
+    private void drawWithShader(Canvas canvas, int w, int h) {
+        float t = (System.currentTimeMillis() / 1000.0f - mStartTime) + mBreathPhase;
+        Shader bgShader = getBackgroundShader(w, h);
+
+        mGlassShader.setFloatUniform("uResolution", (float) w, (float) h);
+        mGlassShader.setFloatUniform("uRadius", dp(mCornerRadius));
+        mGlassShader.setFloatUniform("uStrengthUV", mRefractionStrength);
+        mGlassShader.setFloatUniform("uDispersionStrength", mDispersionStrength);
+        mGlassShader.setFloatUniform("uHighlightStrength", mHighlightStrength);
+        mGlassShader.setFloatUniform("uRefractionCenter",
+                mRefractionCenterX * w, mRefractionCenterY * h);
+        mGlassShader.setFloatUniform("uRefractionRadiusScale", mRefractionRadiusScale);
+        mGlassShader.setFloatUniform("uHighlightWidth", 50f / 255f);
+        mGlassShader.setFloatUniform("uGlassAlpha", mGlassAlpha);
+        mGlassShader.setColorUniform("uGlassTint", mDarkMode ? 0xFF1A1A2E : mTintColor);
+        mGlassShader.setFloatUniform("uTime", t);
+        mGlassShader.setFloatUniform("uBreathing", mBreathing ? 0.35f : 0f);
+        mGlassShader.setColorUniform("uHighlightColor", mDarkMode ? 0x6600E5FF : 0xDDFFFFFF);
+        mGlassShader.setFloatUniform("uShimmer", 1f);
+        mGlassShader.setFloatUniform("uInnerShadow", 1f);
+        mGlassShader.setFloatUniform("uEdgeWidth", 4f);
+        mGlassShader.setColorUniform("uEdgeColor", mDarkMode ? 0x5500E5FF : 0x66FFFFFF);
+
+        if (bgShader != null) {
+            mGlassShader.setInputShader("background", bgShader);
+        } else {
+            mFlatBgShader.setColorUniform("uColor", mDarkMode ? 0xFF14141F : 0xFFDDE3EA);
+            mGlassShader.setInputShader("background", mFlatBgShader);
         }
+
+        mShaderPaint.setShader(mGlassShader);
+        canvas.drawRect(0, 0, w, h, mShaderPaint);
     }
 
-    /**
-     * 光线折射渐变：模拟光线穿过玻璃的明暗变化
-     */
-     private void drawRefractionGradient(Canvas canvas, RectF rect) {
+    private Shader getBackgroundShader(int w, int h) {
+        if (mBackgroundBitmap != null && !mBackgroundBitmap.isRecycled()) {
+            if (mDirtySampling) {
+                mBackgroundShader = new BitmapShader(mBackgroundBitmap,
+                        Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                mDirtySampling = false;
+            }
+            return mBackgroundShader;
+        }
+        mFlatBgShader.setColorUniform("uColor", mDarkMode ? 0xFF14141F : 0xFFDDE3EA);
+        return mFlatBgShader;
+    }
+
+    // -------------------- Canvas 兜底路径 --------------------
+
+    private void drawWithCanvas(Canvas canvas, int w, int h) {
+        RectF rect = new RectF(mGlassInset, mGlassInset, w - mGlassInset, h - mGlassInset);
+        float rx = dp(mCornerRadius);
+        float ry = dp(mCornerRadius);
+
+        drawBlurredBackground(canvas, w, h);
+
+        mTintPaint.setColor(mDarkMode ? 0xFF1A1A2E : mTintColor);
+        mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+        canvas.drawRoundRect(rect, rx, ry, mTintPaint);
+
+        drawRefractionGradient(canvas, rect, rx, ry);
+
+        if (mDispersionStrength > 0f) {
+            drawDispersionLayers(canvas, rect, rx, ry);
+        }
+
+        drawEdgeGlow(canvas, rect, rx, ry);
+        drawTopHighlight(canvas, rect);
+        drawInnerShadow(canvas, rect, rx, ry);
+    }
+
+    private void drawBlurredBackground(Canvas canvas, int w, int h) {
+        canvas.drawColor(mDarkMode ? 0xCC0D0D1A : 0xCCB0BEC5);
+    }
+
+    private void drawRefractionGradient(Canvas canvas, RectF rect, float rx, float ry) {
         LinearGradient gradient;
         if (mDarkMode) {
-            // 深色模式：暗色渐变
             gradient = new LinearGradient(
                     rect.left, rect.top, rect.right * 0.3f, rect.bottom,
-                    new int[]{
-                            0x33FFFFFF,   // 左上角微亮
-                            0x18FFFFFF,
-                            0x00000000,
-                            0x22000000,
-                            0x44000000
-                    },
+                    new int[]{0x33FFFFFF, 0x18FFFFFF, 0x00000000, 0x22000000, 0x44000000},
                     new float[]{0f, 0.15f, 0.45f, 0.75f, 1f},
-                    Shader.TileMode.CLAMP
-            );
+                    Shader.TileMode.CLAMP);
         } else {
-            // 浅色模式：亮色渐变
             gradient = new LinearGradient(
                     rect.left, rect.top, rect.right * 0.3f, rect.bottom,
-                    new int[]{
-                            0x44FFFFFF,
-                            0x22FFFFFF,
-                            0x00000000,
-                            0x11000000,
-                            0x33000000
-                    },
+                    new int[]{0x44FFFFFF, 0x22FFFFFF, 0x00000000, 0x11000000, 0x33000000},
                     new float[]{0f, 0.15f, 0.45f, 0.75f, 1f},
-                    Shader.TileMode.CLAMP
-            );
+                    Shader.TileMode.CLAMP);
         }
         mGradientPaint.setShader(gradient);
-        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mGradientPaint);
+        canvas.drawRoundRect(rect, rx, ry, mGradientPaint);
     }
 
-    /**
-     * 顶部高光线：模拟玻璃顶部反光
-     */
+    private void drawDispersionLayers(Canvas canvas, RectF rect, float rx, float ry) {
+        int shift = (int) (mDispersionStrength * 40);
+        Paint red = new Paint(Paint.ANTI_ALIAS_FLAG);
+        red.setColor(0x22FF0000);
+        Paint blue = new Paint(Paint.ANTI_ALIAS_FLAG);
+        blue.setColor(0x220000FF);
+        RectF rRect = new RectF(rect.left + shift, rect.top, rect.right + shift, rect.bottom);
+        RectF bRect = new RectF(rect.left - shift, rect.top, rect.right - shift, rect.bottom);
+        canvas.drawRoundRect(rRect, rx, ry, red);
+        canvas.drawRoundRect(bRect, rx, ry, blue);
+    }
+
     private void drawTopHighlight(Canvas canvas, RectF rect) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(dp(2));
-        p.setColor(0xAAFFFFFF);
-
+        p.setColor(mDarkMode ? 0x6600E5FF : 0xAAFFFFFF);
         RectF topArc = new RectF(rect.left + dp(4), rect.top + dp(1),
                 rect.right - dp(4), rect.top + dp(8));
         canvas.drawRoundRect(topArc, dp(6), dp(6), p);
     }
 
-    /**
-     * 内阴影：玻璃厚度感
-     */
-    private void drawInnerShadow(Canvas canvas, RectF rect) {
+    private void drawInnerShadow(Canvas canvas, RectF rect, float rx, float ry) {
         LinearGradient shadow = new LinearGradient(
                 rect.left, rect.top, rect.left, rect.top + dp(20),
-                0x22000000,
-                0x00000000,
-                Shader.TileMode.CLAMP
-        );
+                0x22000000, 0x00000000, Shader.TileMode.CLAMP);
         mInnerShadowPaint.setShader(shadow);
-        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mInnerShadowPaint);
+        canvas.drawRoundRect(rect, rx, ry, mInnerShadowPaint);
     }
 
-    /**
-     * 边缘高光：单层干净描边
-     */
-    private void drawEdgeGlow(Canvas canvas, RectF rect) {
-        Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
-        edge.setStyle(Paint.Style.STROKE);
-        edge.setStrokeWidth(dp(2));
-        edge.setColor(mDarkMode ? 0x4400E5FF : 0x88FFFFFF);  // 深色用青色边框
-        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), edge);
+    private void drawEdgeGlow(Canvas canvas, RectF rect, float rx, float ry) {
+        LinearGradient edge = new LinearGradient(
+                rect.left, rect.top, rect.right, rect.bottom,
+                new int[]{0xCCFFFFFF, 0x00000000, 0x22FFFFFF, 0xCCFFFFFF},
+                new float[]{0f, 0.35f, 0.65f, 1f},
+                Shader.TileMode.CLAMP);
+        mEdgePaint.setShader(edge);
+        mEdgePaint.setStyle(Paint.Style.STROKE);
+        mEdgePaint.setStrokeWidth(dp(2));
+        canvas.drawRoundRect(rect, rx, ry, mEdgePaint);
     }
 
-    /**
-     * 玻璃光泽斜线：模拟光线在玻璃表面的反射
-     */
-    private void drawShimmer(Canvas canvas, RectF rect) {
-        LinearGradient shimmer = new LinearGradient(
-                rect.left, rect.top, rect.right, rect.bottom * 0.6f,
-                new int[]{0x00000000, 0x18FFFFFF, 0x00000000},
-                new float[]{0.2f, 0.4f, 0.6f},
-                Shader.TileMode.CLAMP
-        );
-        mShimmerPaint.setShader(shimmer);
-        canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mShimmerPaint);
-    }
+    // -------------------- 涟漪 --------------------
 
-    // ========== 参数设置 ==========
-
-    public void setBlurRadius(float radius) {
-        mBlurRadius = Math.max(4, Math.min(30, radius));
-        mNeedsBlur = true;
+    private void drawRipples(Canvas canvas) {
+        if (mRipples.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        Iterator<Ripple> it = mRipples.iterator();
+        while (it.hasNext()) {
+            Ripple r = it.next();
+            float elapsed = (now - r.startTime) / 1000f;
+            if (elapsed > r.duration) {
+                it.remove();
+                continue;
+            }
+            float progress = elapsed / r.duration;
+            float radius = r.maxRadius * progress;
+            float alpha = (1f - progress) * 0.5f;
+            mRipplePaint.reset();
+            mRipplePaint.setAntiAlias(true);
+            mRipplePaint.setStyle(Paint.Style.STROKE);
+            mRipplePaint.setStrokeWidth(dp(2) * (1f - progress));
+            int color = mDarkMode
+                    ? Color.argb((int)(alpha * 255), 0x00, 0xE5, 0xFF)
+                    : Color.argb((int)(alpha * 255), 255, 255, 255);
+            mRipplePaint.setColor(color);
+            canvas.drawCircle(r.x, r.y, radius, mRipplePaint);
+        }
         invalidate();
     }
 
+    private static class Ripple {
+        final float x, y;
+        final long startTime;
+        final float maxRadius;
+        final float duration;
+        Ripple(float x, float y, long start, float maxRadius, float duration) {
+            this.x = x;
+            this.y = y;
+            this.startTime = start;
+            this.maxRadius = maxRadius;
+            this.duration = duration;
+        }
+    }
+
+    // ====================== 交互 ======================
+
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        return false;
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_MOVE:
+                if (mInteractiveRefraction && getWidth() > 0 && getHeight() > 0) {
+                    setRefractionCenter(event.getX() / getWidth(), event.getY() / getHeight());
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                addRipple(event.getX(), event.getY());
+                break;
+            default:
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    public void addRipple(float x, float y) {
+        if (mRipples.size() >= MAX_RIPPLES) {
+            mRipples.remove(0);
+        }
+        float maxR = (float) Math.hypot(getWidth(), getHeight()) * 0.5f;
+        mRipples.add(new Ripple(x, y, System.currentTimeMillis(), maxR, 0.8f));
+        invalidate();
+    }
+
+    // ====================== 动画 ======================
+
+    public void startBreathing() {
+        if (mBreathing) return;
+        mBreathing = true;
+        mStartTime = System.currentTimeMillis() / 1000L;
+        if (mBreathAnimator == null) {
+            mBreathAnimator = ValueAnimator.ofFloat(0, 1);
+            mBreathAnimator.setDuration(1000);
+            mBreathAnimator.setRepeatCount(ValueAnimator.INFINITE);
+            mBreathAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+            mBreathAnimator.addUpdateListener(animation -> {
+                mBreathPhase = (float) animation.getAnimatedValue();
+                invalidate();
+            });
+        }
+        mBreathAnimator.start();
+    }
+
+    public void stopBreathing() {
+        mBreathing = false;
+        if (mBreathAnimator != null) {
+            mBreathAnimator.cancel();
+        }
+        invalidate();
+    }
+
+    // ====================== 参数设置 ======================
+
+    /** 深色模式开关 */
+    public void setDarkMode(boolean dark) {
+        mDarkMode = dark;
+        mDirtySampling = true;
+        invalidate();
+    }
+
+    /** 折射强度 */
+    public void setRefractionStrength(float v) {
+        mRefractionStrength = clamp(v, 0f, 0.2f);
+        invalidate();
+    }
+
+    /** 色散强度 */
+    public void setDispersionStrength(float v) {
+        mDispersionStrength = clamp(v, 0f, 0.2f);
+        invalidate();
+    }
+
+    /** 轮廓光强度 */
+    public void setHighlightStrength(float v) {
+        mHighlightStrength = clamp(v, 0f, 0.5f);
+        invalidate();
+    }
+
+    /** 玻璃不透明度 */
     public void setGlassAlpha(float alpha) {
-        mGlassAlpha = Math.max(0.1f, Math.min(0.95f, alpha));
+        mGlassAlpha = clamp(alpha, 0.1f, 0.95f);
         invalidate();
     }
 
+    /** 玻璃染色 */
     public void setTintColor(int color) {
         mTintColor = color;
-        mTintPaint.setColor(color);
         invalidate();
     }
 
-    public void setCornerRadius(float radius) {
-        mCornerRadius = radius;
-        invalidateOutline();  // ← 新增：刷新圆角裁剪
+    /** 圆角半径（dp） */
+    public void setCornerRadius(float radiusDp) {
+        mCornerRadius = clamp(radiusDp, 0f, 128f);
+        invalidateOutline();
         invalidate();
     }
 
+    /** 启用/禁用折射 */
+    public void setRefractionEnabled(boolean enabled) {
+        mRefractionEnabled = enabled;
+        invalidate();
+    }
+
+    /** 动态折射源 */
+    public void setInteractiveRefraction(boolean enabled) {
+        mInteractiveRefraction = enabled;
+        if (!enabled) {
+            setRefractionCenter(0.5f, 0.5f);
+        }
+    }
+
+    /** 设置折射中心（归一化坐标 0..1） */
+    public void setRefractionCenter(float nx, float ny) {
+        mRefractionCenterX = clamp(nx, 0f, 1f);
+        mRefractionCenterY = clamp(ny, 0f, 1f);
+        invalidate();
+    }
+
+    /** 注入背景 Bitmap */
+    public void setBackgroundBitmap(Bitmap bitmap) {
+        mBackgroundBitmap = bitmap;
+        mBackgroundShader = null;
+        mDirtySampling = true;
+        invalidate();
+    }
+
+    /** 刷新背景采样 */
+    public void updateBackgroundSampling() {
+        mDirtySampling = true;
+        invalidate();
+    }
+
+    // ====================== 兼容旧接口 ======================
+
+    /** 兼容旧接口：setBlurRadius → 映射到折射强度 */
+    public void setBlurRadius(float radius) {
+        // 旧版 18f → 新版折射强度约 0.036
+        setRefractionStrength(radius / 500f);
+    }
+
+    /** 兼容旧接口：updateBlur → 仅刷新 */
     public void updateBlur() {
-        mNeedsBlur = true;
+        mDirtySampling = true;
         invalidate();
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        mNeedsBlur = true;
-    }
-
-    private int dp(int d) {
-        return (int) (d * getContext().getResources().getDisplayMetrics().density);
-    }
+    // ====================== 生命周期 ======================
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (mBlurCache != null && !mBlurCache.isRecycled()) {
-            mBlurCache.recycle();
-            mBlurCache = null;
-        }
+        stopBreathing();
+    }
+
+    // ====================== 工具 ======================
+
+    private static float clamp(float v, float lo, float hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
+
+    private float dp(float v) {
+        return v * getContext().getResources().getDisplayMetrics().density;
     }
 }
