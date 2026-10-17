@@ -14,6 +14,8 @@ import android.widget.FrameLayout;
  */
 public class LiquidGlassView extends FrameLayout {
 
+    // 新增：深色模式标记
+    private boolean mDarkMode = false;
     // 效果参数
     private float mBlurRadius = 18f;
     private float mGlassAlpha = 0.55f;
@@ -36,6 +38,12 @@ public class LiquidGlassView extends FrameLayout {
         init();
     }
 
+    public void setDarkMode(boolean dark) {
+        mDarkMode = dark;
+        mNeedsBlur = true;
+        invalidate();
+    }
+    
     private void init() {
         setWillNotDraw(false);
         setClipChildren(false);
@@ -71,18 +79,24 @@ public class LiquidGlassView extends FrameLayout {
             // 1. 模糊背景
             drawBlurredBackground(canvas, w, h);
 
-            // 2. 玻璃底色
-            mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+            // 2. 玻璃底色（深色模式用黑色半透明）
+            if (mDarkMode) {
+                mTintPaint.setColor(0xFF1A1A2E);
+                mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+            } else {
+                mTintPaint.setColor(mTintColor);
+                mTintPaint.setAlpha((int) (mGlassAlpha * 255));
+            }
             canvas.drawRoundRect(rect, rx, ry, mTintPaint);
 
             // 3. 光线折射渐变
             drawRefractionGradient(canvas, rect);
 
-            // 4. 边缘高光（单层，干净）
+            // 4. 边缘高光
             drawEdgeGlow(canvas, rect);
 
         } catch (Throwable t) {
-            canvas.drawColor(0xB3FFFFFF);
+            canvas.drawColor(mDarkMode ? 0xCC1A1A2E : 0xB3FFFFFF);
         }
 
         super.onDraw(canvas);
@@ -96,29 +110,50 @@ public class LiquidGlassView extends FrameLayout {
      */
     private void drawBlurredBackground(Canvas canvas, int w, int h) {
         try {
-            // 直接画半透明底色，不截取父视图（避免递归崩溃）
-            canvas.drawColor(0xCCB0BEC5);  // 半透明灰蓝色，模拟模糊效果
+            if (mDarkMode) {
+                canvas.drawColor(0xCC0D0D1A);  // 深色：深蓝黑
+            } else {
+                canvas.drawColor(0xCCB0BEC5);  // 浅色：灰蓝
+            }
         } catch (Throwable t) {
-            canvas.drawColor(0xCCEEF2F7);
+            canvas.drawColor(mDarkMode ? 0xCC0D0D1A : 0xCCEEF2F7);
         }
     }
 
     /**
      * 光线折射渐变：模拟光线穿过玻璃的明暗变化
      */
-    private void drawRefractionGradient(Canvas canvas, RectF rect) {
-        LinearGradient gradient = new LinearGradient(
-                rect.left, rect.top, rect.right * 0.3f, rect.bottom,
-                new int[]{
-                        0x44FFFFFF,   // 左上角高光
-                        0x22FFFFFF,   // 上部
-                        0x00000000,   // 中部透明
-                        0x11000000,   // 下部微暗
-                        0x33000000    // 右下阴影
-                },
-                new float[]{0f, 0.15f, 0.45f, 0.75f, 1f},
-                Shader.TileMode.CLAMP
-        );
+     private void drawRefractionGradient(Canvas canvas, RectF rect) {
+        LinearGradient gradient;
+        if (mDarkMode) {
+            // 深色模式：暗色渐变
+            gradient = new LinearGradient(
+                    rect.left, rect.top, rect.right * 0.3f, rect.bottom,
+                    new int[]{
+                            0x33FFFFFF,   // 左上角微亮
+                            0x18FFFFFF,
+                            0x00000000,
+                            0x22000000,
+                            0x44000000
+                    },
+                    new float[]{0f, 0.15f, 0.45f, 0.75f, 1f},
+                    Shader.TileMode.CLAMP
+            );
+        } else {
+            // 浅色模式：亮色渐变
+            gradient = new LinearGradient(
+                    rect.left, rect.top, rect.right * 0.3f, rect.bottom,
+                    new int[]{
+                            0x44FFFFFF,
+                            0x22FFFFFF,
+                            0x00000000,
+                            0x11000000,
+                            0x33000000
+                    },
+                    new float[]{0f, 0.15f, 0.45f, 0.75f, 1f},
+                    Shader.TileMode.CLAMP
+            );
+        }
         mGradientPaint.setShader(gradient);
         canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), mGradientPaint);
     }
@@ -158,7 +193,7 @@ public class LiquidGlassView extends FrameLayout {
         Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(dp(2));
-        edge.setColor(0x88FFFFFF);
+        edge.setColor(mDarkMode ? 0x4400E5FF : 0x88FFFFFF);  // 深色用青色边框
         canvas.drawRoundRect(rect, dp((int) mCornerRadius), dp((int) mCornerRadius), edge);
     }
 
