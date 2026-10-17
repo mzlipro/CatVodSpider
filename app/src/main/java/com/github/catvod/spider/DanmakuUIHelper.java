@@ -4612,11 +4612,44 @@ public class DanmakuUIHelper {
             mainLayout.addView(scrollView, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
-            // 取消按钮 - 焦点橙色空心边框
-            Button cancelBtn = createLiquidMenuButton(activity, "取消");
+            // 取消按钮 - 焦点橙色空心边框，文字居中
+            Button cancelBtn = new Button(activity);
+            cancelBtn.setText("取消");
+            cancelBtn.setTextSize(12);
+            cancelBtn.setTypeface(null, android.graphics.Typeface.BOLD);
+            cancelBtn.setFocusable(true);
+            cancelBtn.setFocusableInTouchMode(true);
+            cancelBtn.setGravity(Gravity.CENTER);              // ← 文字居中
+            cancelBtn.setPadding(0, 0, 0, 0);                   // ← 不额外加 padding
+
+            // 默认样式
+            android.graphics.drawable.GradientDrawable cancelBg = new android.graphics.drawable.GradientDrawable();
+            cancelBg.setCornerRadius(dpToPx(activity, 10));
+            cancelBg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+            cancelBg.setStroke(dpToPx(activity, 2), 0x99AAAAAA);
+            cancelBtn.setBackground(cancelBg);
+            cancelBtn.setTextColor(0xDD222222);
+
+            // 焦点样式：橙色空心边框
+            cancelBtn.setOnFocusChangeListener((v, hasFocus) -> {
+                android.graphics.drawable.GradientDrawable bg2 = new android.graphics.drawable.GradientDrawable();
+                bg2.setCornerRadius(dpToPx(activity, 10));
+                if (hasFocus) {
+                    bg2.setColors(new int[]{0x33FFFFFF, 0x22FFFFFF, 0x33FFFFFF});
+                    bg2.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
+                    ((Button) v).setTextColor(0xFFE65100);
+                } else {
+                    bg2.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+                    bg2.setStroke(dpToPx(activity, 2), 0x99AAAAAA);
+                    ((Button) v).setTextColor(0xDD222222);
+                }
+                v.setBackground(bg2);
+            });
+
             LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 40));
-            cancelParams.setMargins(0, dpToPx(activity, 8), 0, 0);
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 44));
+            cancelParams.setMargins(dpToPx(activity, 4), dpToPx(activity, 8),
+                    dpToPx(activity, 4), 0);                     // ← 左右加 margin 防止边框溢出
             cancelBtn.setLayoutParams(cancelParams);
             mainLayout.addView(cancelBtn);
 
