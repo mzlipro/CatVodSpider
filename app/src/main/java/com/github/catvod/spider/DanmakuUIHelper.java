@@ -276,6 +276,7 @@ public class DanmakuUIHelper {
                     if (isLiquidMode1) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
+                        liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -439,6 +440,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode2) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -775,6 +777,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode3) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -1154,6 +1157,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode4) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(config.getLpLiquidAlpha());  // ← 联动液态透明度
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -1345,6 +1349,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode5) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -1493,6 +1498,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode6) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -1627,6 +1633,7 @@ public class DanmakuUIHelper {
                 if (isLiquidMode7) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -2058,6 +2065,7 @@ public class DanmakuUIHelper {
                 if (isLiquidLog) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -2338,6 +2346,7 @@ public class DanmakuUIHelper {
                     if (isLiquid) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
+                        liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -2599,15 +2608,18 @@ public class DanmakuUIHelper {
         if (button.getContext() instanceof Activity) {
             DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
             if (cfg.isLiquidDanmakuStyle()) {
+                boolean isDarkT = cfg.isDarkMode();
                 if (button.hasFocus()) {
                     button.setBackground(createLiquidGlassDrawable(button.getContext(), 0xFFFF6B00, 3));
                     button.setTextColor(Color.WHITE);
                 } else if (isActive) {
-                    button.setBackground(createLiquidGlassDrawable(button.getContext(), 0xFF2196F3, 2));
+                    button.setBackground(createLiquidGlassDrawable(button.getContext(),
+                            isDarkT ? 0xFF00E5FF : 0xFF2196F3, 2));
                     button.setTextColor(Color.WHITE);
                 } else {
-                    button.setBackground(createLiquidGlassDrawable(button.getContext(), 0x44FFFFFF, 1));
-                    button.setTextColor(0xDD333333);
+                    button.setBackground(createLiquidGlassDrawable(button.getContext(),
+                            isDarkT ? 0x33FFFFFF : 0x44FFFFFF, 1));
+                    button.setTextColor(isDarkT ? 0xFFCCCCCC : 0xDD333333);
                 }
                 return;
             }
@@ -3446,23 +3458,39 @@ public class DanmakuUIHelper {
         if (button.getContext() instanceof Activity) {
             DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
             if (cfg.isLiquidDanmakuStyle()) {
+                boolean isDarkL = cfg.isDarkMode();
                 android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
                 bg.setCornerRadius(dpToPx(button.getContext(), 12));
                 if (focused) {
-                    // 焦点：橙色玻璃 + 橙色粗边框
-                    bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800});
-                    bg.setStroke(dpToPx(button.getContext(), 3), 0xFFFF6B00);
-                    button.setTextColor(0xFFE65100);
+                    if (isDarkL) {
+                        bg.setColors(new int[]{0xCC4E342E, 0x99FF9800});
+                        bg.setStroke(dpToPx(button.getContext(), 3), 0xFFFF6B00);
+                        button.setTextColor(0xFFFFB74D);
+                    } else {
+                        bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800});
+                        bg.setStroke(dpToPx(button.getContext(), 3), 0xFFFF6B00);
+                        button.setTextColor(0xFFE65100);
+                    }
                 } else if (active) {
-                    // 选中/包含上次使用弹幕：蓝色玻璃 + 蓝色边框
-                    bg.setColors(new int[]{0x88E3F2FD, 0x5590CAF9});
-                    bg.setStroke(dpToPx(button.getContext(), 2), 0xFF2196F3);
-                    button.setTextColor(0xFF1565C0);
+                    if (isDarkL) {
+                        bg.setColors(new int[]{0x881A237E, 0x553F51B5});
+                        bg.setStroke(dpToPx(button.getContext(), 2), 0xFF00E5FF);
+                        button.setTextColor(0xFF80DEEA);
+                    } else {
+                        bg.setColors(new int[]{0x88E3F2FD, 0x5590CAF9});
+                        bg.setStroke(dpToPx(button.getContext(), 2), 0xFF2196F3);
+                        button.setTextColor(0xFF1565C0);
+                    }
                 } else {
-                    // 普通：白色半透明玻璃 + 灰色边框（始终有框）
-                    bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
-                    bg.setStroke(dpToPx(button.getContext(), 2), 0x99AAAAAA);
-                    button.setTextColor(0xDD222222);
+                    if (isDarkL) {
+                        bg.setColors(new int[]{0x66303040, 0x44303040});
+                        bg.setStroke(dpToPx(button.getContext(), 2), 0x66FFFFFF);
+                        button.setTextColor(0xDDCCCCCC);
+                    } else {
+                        bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
+                        bg.setStroke(dpToPx(button.getContext(), 2), 0x99AAAAAA);
+                        button.setTextColor(0xDD222222);
+                    }
                 }
                 button.setBackground(bg);
                 return;
@@ -3918,6 +3946,7 @@ public class DanmakuUIHelper {
                 if (isLiquidQR) {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
+                    liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                     liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -4212,21 +4241,41 @@ public class DanmakuUIHelper {
     }
     
     /**
-     * 多格模式按钮样式 - 焦点橙色，推送中绿色，普通灰色
+     * 多格模式按钮样式 - 支持深色模式
+     * 焦点橙色，推送中绿色，普通灰色
      */
     private static void applyMultiGridResultStyle(Button button, boolean highlighted, boolean focused) {
-        if (focused) {
-            // 移动焦点：橙色边框
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFFFF3E0, 0xFFFF6B00, 3));
-            button.setTextColor(0xFFE65100);
-        } else if (highlighted) {
-            // 正在推送：绿色
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_COLOR, 2));
-            button.setTextColor(0xFF1F7A3A);
+        // 获取深色模式状态
+        boolean isDark = false;
+        if (button.getContext() instanceof Activity) {
+            DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
+            isDark = cfg.isDarkUI();
+        }
+
+        if (isDark) {
+            // ====== 深色模式配色 ======
+            if (focused) {
+                button.setBackground(createRoundedStrokeBackgroundDrawable(0x44FFE0B2, 0xFFFF6B00, 3));
+                button.setTextColor(0xFFFFB74D);
+            } else if (highlighted) {
+                button.setBackground(createRoundedStrokeBackgroundDrawable(0x4434C759, 0xFF34C759, 3));
+                button.setTextColor(0xFF81C784);
+            } else {
+                button.setBackground(createRoundedStrokeBackgroundDrawable(0x33FFFFFF, 0x44FFFFFF, 2));
+                button.setTextColor(0xFFCCCCCC);
+            }
         } else {
-            // 普通状态：灰色
-            button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFF0F0F0, 0xFFD6D6D6, 1));
-            button.setTextColor(TEXT_PRIMARY);
+            // ====== 浅色模式配色（原有） ======
+            if (focused) {
+                button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_DARK, 3));
+                button.setTextColor(TERTIARY_DARK);
+            } else if (highlighted) {
+                button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_COLOR, 2));
+                button.setTextColor(0xFF1F7A3A);
+            } else {
+                button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFF0F0F0, 0xFFD6D6D6, 1));
+                button.setTextColor(TEXT_PRIMARY);
+            }
         }
     }
 
@@ -4352,27 +4401,43 @@ public class DanmakuUIHelper {
      * 真液态按钮样式：玻璃质感 + 边缘高光 + 折射渐变
      */
     /**
-     * 液态模式按钮样式：每项都有明显边框
+     * 液态模式按钮样式：支持深浅模式
      */
     private static void applyLiquidResultStyle(Activity activity, Button button, boolean highlighted, boolean focused) {
+        boolean isDark = DanmakuConfigManager.getConfig(activity).isDarkMode();
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(dpToPx(activity, 12));
 
-        if (focused) {
-            // 焦点：橙色玻璃 + 粗边框
-            bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800, 0xCCFFE0B2});
-            bg.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
-            button.setTextColor(0xFFE65100);
-        } else if (highlighted) {
-            // 推送中：绿色玻璃 + 粗边框
-            bg.setColors(new int[]{0xB3C8E6C9, 0x8866BB6A, 0xB3C8E6C9});
-            bg.setStroke(dpToPx(activity, 3), 0xFF34C759);
-            button.setTextColor(0xFF1B5E20);
+        if (isDark) {
+            // ====== 深色模式 ======
+            if (focused) {
+                bg.setColors(new int[]{0xCC4E342E, 0x99FF9800, 0xCC4E342E});
+                bg.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
+                button.setTextColor(0xFFFFB74D);
+            } else if (highlighted) {
+                bg.setColors(new int[]{0xB31B3D2E, 0x8834C759, 0xB31B3D2E});
+                bg.setStroke(dpToPx(activity, 3), 0xFF34C759);
+                button.setTextColor(0xFF81C784);
+            } else {
+                bg.setColors(new int[]{0x55303040, 0x33303040, 0x55303040});
+                bg.setStroke(dpToPx(activity, 2), 0x66FFFFFF);
+                button.setTextColor(0xDDCCCCCC);
+            }
         } else {
-            // 普通：半透明玻璃 + 可见边框（不能只有焦点才有框！）
-            bg.setColors(new int[]{0x77FFFFFF, 0x55FFFFFF, 0x77FFFFFF});
-            bg.setStroke(dpToPx(activity, 2), 0x99AAAAAA);  // ← 明显灰色边框
-            button.setTextColor(0xDD222222);
+            // ====== 浅色模式 ======
+            if (focused) {
+                bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800, 0xCCFFE0B2});
+                bg.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
+                button.setTextColor(0xFFE65100);
+            } else if (highlighted) {
+                bg.setColors(new int[]{0xB3C8E6C9, 0x8866BB6A, 0xB3C8E6C9});
+                bg.setStroke(dpToPx(activity, 3), 0xFF34C759);
+                button.setTextColor(0xFF1B5E20);
+            } else {
+                bg.setColors(new int[]{0x77FFFFFF, 0x55FFFFFF, 0x77FFFFFF});
+                bg.setStroke(dpToPx(activity, 2), 0x99AAAAAA);
+                button.setTextColor(0xDD222222);
+            }
         }
 
         button.setBackground(bg);
@@ -4382,14 +4447,25 @@ public class DanmakuUIHelper {
      * 液态玻璃输入框背景
      */
     private static android.graphics.drawable.Drawable createLiquidInputDrawable(Activity activity, boolean focused) {
+        boolean isDark = DanmakuConfigManager.getConfig(activity).isDarkMode();
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(dpToPx(activity, 10));
-        if (focused) {
-            bg.setColors(new int[]{0xCCBBDEFB, 0x8890CAF9, 0xCCBBDEFB});
-            bg.setStroke(dpToPx(activity, 2), 0xFF2196F3);
+        if (isDark) {
+            if (focused) {
+                bg.setColors(new int[]{0xCC1A237E, 0x883F51B5, 0xCC1A237E});
+                bg.setStroke(dpToPx(activity, 2), 0xFF00E5FF);
+            } else {
+                bg.setColors(new int[]{0x66303040, 0x44303040, 0x66303040});
+                bg.setStroke(dpToPx(activity, 2), 0x66FFFFFF);
+            }
         } else {
-            bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
-            bg.setStroke(dpToPx(activity, 2), 0x99BBBBBB);  // ← 始终有边框
+            if (focused) {
+                bg.setColors(new int[]{0xCCBBDEFB, 0x8890CAF9, 0xCCBBDEFB});
+                bg.setStroke(dpToPx(activity, 2), 0xFF2196F3);
+            } else {
+                bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
+                bg.setStroke(dpToPx(activity, 2), 0x99BBBBBB);
+            }
         }
         return bg;
     }
@@ -4398,6 +4474,7 @@ public class DanmakuUIHelper {
      * 液态玻璃按钮（用于搜索、反序等）
      */
     private static Button createLiquidGlassButton(Activity activity, String text, int tintColor) {
+        boolean isDark = DanmakuConfigManager.getConfig(activity).isDarkMode();
         Button button = new Button(activity);
         button.setText(text);
         button.setTextSize(14);
@@ -4405,25 +4482,32 @@ public class DanmakuUIHelper {
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
 
-        // 默认液态样式
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(dpToPx(activity, 12));
-        bg.setColors(new int[]{
-            (tintColor & 0x00FFFFFF) | 0xCC000000,
-            (tintColor & 0x00FFFFFF) | 0x88000000,
-            (tintColor & 0x00FFFFFF) | 0xCC000000
-        });
-        bg.setStroke(dpToPx(activity, 2), 0x99FFFFFF);  // ← 始终有边框
+        if (isDark) {
+            bg.setColors(new int[]{
+                (tintColor & 0x00FFFFFF) | 0xCC000000,
+                (tintColor & 0x00FFFFFF) | 0x88000000,
+                (tintColor & 0x00FFFFFF) | 0xCC000000
+            });
+            bg.setStroke(dpToPx(activity, 2), 0x44FFFFFF);
+        } else {
+            bg.setColors(new int[]{
+                (tintColor & 0x00FFFFFF) | 0xCC000000,
+                (tintColor & 0x00FFFFFF) | 0x88000000,
+                (tintColor & 0x00FFFFFF) | 0xCC000000
+            });
+            bg.setStroke(dpToPx(activity, 2), 0x99FFFFFF);
+        }
         button.setBackground(bg);
         button.setTextColor(Color.WHITE);
 
-        // 焦点效果
         button.setOnFocusChangeListener((v, hasFocus) -> {
             android.graphics.drawable.GradientDrawable bg2 = new android.graphics.drawable.GradientDrawable();
             bg2.setCornerRadius(dpToPx(activity, 12));
             if (hasFocus) {
                 bg2.setColors(new int[]{0xFFFF6B00, 0xFFE65100, 0xFFFF6B00});
-                bg2.setStroke(dpToPx(activity, 3), 0xFFFFFFFF);
+                bg2.setStroke(dpToPx(activity, 3), isDark ? 0xFF00E5FF : 0xFFFFFFFF);
                 ((Button) v).setTextColor(Color.WHITE);
             } else {
                 bg2.setColors(new int[]{
@@ -4431,7 +4515,7 @@ public class DanmakuUIHelper {
                     (tintColor & 0x00FFFFFF) | 0x88000000,
                     (tintColor & 0x00FFFFFF) | 0xCC000000
                 });
-                bg2.setStroke(dpToPx(activity, 2), 0x99FFFFFF);
+                bg2.setStroke(dpToPx(activity, 2), isDark ? 0x44FFFFFF : 0x99FFFFFF);
                 ((Button) v).setTextColor(Color.WHITE);
             }
             v.setBackground(bg2);
@@ -4539,6 +4623,7 @@ public class DanmakuUIHelper {
             // 液态玻璃容器
             LiquidGlassView liquidRoot = new LiquidGlassView(activity);
             liquidRoot.setBlurRadius(18f);
+            liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
             liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
             liquidRoot.setCornerRadius(24f);
             liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
