@@ -1736,7 +1736,7 @@ public class DanmakuUIHelper {
         return button;
     }
 
-    // 创建实心按钮 - 电视端优化版本（带明显焦点高亮）
+    // 创建实心按钮 - 电视端优化版本（焦点橙色）
     private static Button createStyledButton(Activity activity, String text, int backgroundColor) {
         Button button = new Button(activity);
         button.setText(text);
@@ -1744,20 +1744,17 @@ public class DanmakuUIHelper {
         button.setBackground(createTVFocusableSolidDrawable(backgroundColor, false));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
-        // 启用焦点支持电视端
+        // 启用焦点支持电视端遥控器，但不开启 touchMode 避免手机要点两次
         button.setFocusable(true);
-        button.setFocusableInTouchMode(true);
+        button.setFocusableInTouchMode(false);   // ← 改为 false
 
-        // 添加电视端焦点效果 - 高对比度发光边框
         button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
-                    // 获得焦点时：加粗发光边框 + 高亮背景
                     ((Button) v).setBackground(createTVFocusableSolidDrawable(backgroundColor, true));
                     ((Button) v).setTextColor(TV_FOCUS_TEXT_COLOR);
                 } else {
-                    // 失去焦点时恢复原始样式
                     ((Button) v).setBackground(createTVFocusableSolidDrawable(backgroundColor, false));
                     ((Button) v).setTextColor(Color.WHITE);
                 }
@@ -1800,9 +1797,7 @@ public class DanmakuUIHelper {
         drawable.setColor(color);
         drawable.setCornerRadius(12);
         if (focused) {
-            // 焦点状态：加粗发光边框，背景色稍微变亮
-            drawable.setStroke(6, TV_FOCUS_BORDER_COLOR);
-            // 背景色稍微提亮，增强对比度
+            drawable.setStroke(6, 0xFFFF6B00);  // ← 改为橙色
             drawable.setColor(lightenColor(color, 0.15f));
         } else {
             drawable.setStroke(0, 0);
@@ -4124,7 +4119,7 @@ public class DanmakuUIHelper {
         return resultItem;
     }
 
-    // 创建深色主题实心按钮
+    // 创建深色主题实心按钮（焦点橙色）
     private static Button createDarkSolidButton(Activity activity, String text, int backgroundColor) {
         Button button = new Button(activity);
         button.setText(text);
@@ -4132,19 +4127,24 @@ public class DanmakuUIHelper {
         button.setBackground(createRoundedTransparentDrawable(backgroundColor));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
+        button.setFocusable(true);
+        button.setFocusableInTouchMode(false);   // ← 加上这行
 
-        // 添加焦点效果
         button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
-                    int focusedColor = darkenColor(backgroundColor, 0.3f);
-                    v.setBackground(createRoundedTransparentDrawable(focusedColor));
+                    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                    bg.setCornerRadius(12);
+                    bg.setColor(darkenColor(backgroundColor, 0.3f));
+                    bg.setStroke(4, 0xFFFF6B00);   // ← 橙色边框
+                    v.setBackground(bg);
                     ((Button) v).setTextColor(DARK_TEXT_PRIMARY);
                     v.setScaleX(1.08f);
                     v.setScaleY(1.08f);
                 } else {
                     ((Button) v).setBackground(createRoundedTransparentDrawable(backgroundColor));
+                    ((Button) v).setTextColor(DARK_TEXT_PRIMARY);
                     v.setScaleX(1.0f);
                     v.setScaleY(1.0f);
                 }
@@ -4480,7 +4480,7 @@ public class DanmakuUIHelper {
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
         button.setFocusable(true);
-        button.setFocusableInTouchMode(true);
+        button.setFocusableInTouchMode(false);   // ← 改为 false
 
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(dpToPx(activity, 12));
