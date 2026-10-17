@@ -4612,8 +4612,8 @@ public class DanmakuUIHelper {
             mainLayout.addView(scrollView, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
-            // 取消按钮
-            Button cancelBtn = createLiquidGlassButton(activity, "取消", 0xFF999999);
+            // 取消按钮 - 焦点橙色空心边框
+            Button cancelBtn = createLiquidMenuButton(activity, "取消");
             LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 40));
             cancelParams.setMargins(0, dpToPx(activity, 8), 0, 0);
