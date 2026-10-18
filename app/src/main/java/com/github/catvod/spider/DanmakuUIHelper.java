@@ -2304,7 +2304,7 @@ public class DanmakuUIHelper {
                     tabContainer.setGravity(Gravity.CENTER_VERTICAL);
                     tabContainer.setPadding(dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4));
                     if (isLiquid) {
-                        tabContainer.setBackgroundColor(0x33FFFFFF);
+                        tabContainer.setBackgroundColor(0x11FFFFFF);
                     } else {
                         tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
                     }
@@ -3539,12 +3539,12 @@ public class DanmakuUIHelper {
                     }
                 } else {
                     if (isDarkL) {
-                        bg.setColors(new int[]{0x66303040, 0x44303040});
-                        bg.setStroke(dpToPx(button.getContext(), 2), 0x66FFFFFF);
+                        bg.setColors(new int[]{0x44303040, 0x22303040});
+                        bg.setStroke(dpToPx(button.getContext(), 0), 0x00000000);
                         button.setTextColor(0xDDCCCCCC);
                     } else {
-                        bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
-                        bg.setStroke(dpToPx(button.getContext(), 2), 0x99AAAAAA);
+                        bg.setColors(new int[]{0x44FFFFFF, 0x22FFFFFF});
+                        bg.setStroke(dpToPx(button.getContext(), 0), 0x00000000);
                         button.setTextColor(0xDD222222);
                     }
                 }
@@ -4513,7 +4513,7 @@ public class DanmakuUIHelper {
     }
     
     /**
-     * 液态玻璃输入框背景
+     * 液态玻璃输入框背景（无边框，避免框中框）
      */
     private static android.graphics.drawable.Drawable createLiquidInputDrawable(Activity activity, boolean focused) {
         boolean isDark = DanmakuConfigManager.getConfig(activity).isDarkMode();
@@ -4525,7 +4525,7 @@ public class DanmakuUIHelper {
                 bg.setStroke(dpToPx(activity, 2), 0xFF00E5FF);
             } else {
                 bg.setColors(new int[]{0x66303040, 0x44303040, 0x66303040});
-                bg.setStroke(dpToPx(activity, 2), 0x66FFFFFF);
+                bg.setStroke(dpToPx(activity, 0), 0x00000000);   // ← 无边框
             }
         } else {
             if (focused) {
@@ -4533,7 +4533,7 @@ public class DanmakuUIHelper {
                 bg.setStroke(dpToPx(activity, 2), 0xFF2196F3);
             } else {
                 bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
-                bg.setStroke(dpToPx(activity, 2), 0x99BBBBBB);
+                bg.setStroke(dpToPx(activity, 0), 0x00000000);   // ← 无边框
             }
         }
         return bg;
