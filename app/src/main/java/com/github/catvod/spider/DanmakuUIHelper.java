@@ -2345,6 +2345,10 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
+                        // ====== 加上这三行（测试用）======
+                        liquidRoot.setRefractionStrength(0.15f);   // 折射加强5倍
+                        liquidRoot.setDispersionStrength(0.12f);   // 色散加强4倍
+                        liquidRoot.setHighlightStrength(0.25f);    // 轮廓光加强2.5倍
                         DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
                         // ====== 抓取屏幕背景，实现真实折射 ======
