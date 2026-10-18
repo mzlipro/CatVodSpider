@@ -173,7 +173,7 @@ public class LiquidGlassView extends FrameLayout {
 
     private float mRefractionStrength = 0.03f;
     private float mDispersionStrength = 0.03f;
-    private float mHighlightStrength  = 0.10f;
+    private float mHighlightStrength  = 0f;
     private float mGlassAlpha = 0.55f;
     private int   mTintColor = 0xFFFFFFFF;
     private float mCornerRadius = 24f;
