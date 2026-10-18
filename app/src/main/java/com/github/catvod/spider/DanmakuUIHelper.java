@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
@@ -2341,10 +2342,24 @@ public class DanmakuUIHelper {
                     if (isLiquid) {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
-                        liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
-                        DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());  // ← 只加这一行
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
+                        liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
+                        DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
+
+                        // ====== 抓取屏幕背景，实现真实折射 ======
+                        try {
+                            android.view.View decor = activity.getWindow().getDecorView();
+                            if (decor.getWidth() > 0 && decor.getHeight() > 0) {
+                                Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
+                                Canvas screenCanvas = new Canvas(screenBitmap);
+                                decor.draw(screenCanvas);
+                                liquidRoot.setBackgroundBitmap(screenBitmap);
+                            }
+                        } catch (Throwable t) {
+                            DanmakuSpider.log("背景采样失败: " + t.getMessage());
+                        }
+
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -2367,11 +2382,16 @@ public class DanmakuUIHelper {
                         @Override
                         public void onClick(View v) {
                             isReversed = !isReversed;
-                            if (isTemplate3) {
-                                reverseBtn.setBackground(createRoundedTransparentDrawable(isReversed ? DARK_ACCENT_COLOR : DARK_TERTIARY_LIGHT));
-                            } else {
-                                reverseBtn.setBackground(createRoundedBackgroundDrawable(isReversed ? ACCENT_COLOR : TERTIARY_LIGHT));
-                            }
+                        if (isLiquid) {
+                            // 液态模式：重新应用液态玻璃按钮样式
+                            Button newBtn = createLiquidGlassButton(activity,
+                                    isReversed ? "倒序" : "升序", 0xFF4CAF50);
+                            reverseBtn.setBackground(newBtn.getBackground());
+                        } else if (isTemplate3) {
+                            reverseBtn.setBackground(createRoundedTransparentDrawable(isReversed ? DARK_ACCENT_COLOR : DARK_TERTIARY_LIGHT));
+                        } else {
+                            reverseBtn.setBackground(createRoundedBackgroundDrawable(isReversed ? ACCENT_COLOR : TERTIARY_LIGHT));
+                        }
                             reverseBtn.setText(isReversed ? "倒序" : "升序");
                             showResultsForTab(resultContainer, currentItems, activity, dialog);
                         }
@@ -4313,20 +4333,28 @@ public class DanmakuUIHelper {
      */
     private static void applyRealBlur(AlertDialog dialog) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+：真实背景模糊
             try {
                 android.view.Window window = dialog.getWindow();
                 if (window != null) {
-                    // 窗口透明，才能看到模糊后的背景
-                    window.setBackgroundDrawableResource(android.R.color.transparent);
                     window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
                     window.setDimAmount(0.15f);
-                    // 真实高斯模糊
-                    window.setBackgroundBlurRadius(60);
-                    window.getAttributes().setBlurBehindRadius(60);
-                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+                    // 延迟到 DecorView 就绪后再设置模糊
+                    window.getDecorView().post(() -> {
+                        try {
+                            android.view.Window w = dialog.getWindow();
+                            if (w != null && w.getDecorView() != null) {
+                                w.setBackgroundBlurRadius(60);
+                                w.getAttributes().setBlurBehindRadius(60);
+                                w.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+                            }
+                        } catch (Throwable t) {
+                            DanmakuSpider.log("延迟背景模糊失败: " + t.getMessage());
+                        }
+                    });
                 }
-            } catch (Exception e) {
-                DanmakuSpider.log("背景模糊不支持: " + e.getMessage());
+            } catch (Throwable t) {
+                DanmakuSpider.log("背景模糊不支持: " + t.getMessage());
             }
         } else {
             // Android 12 以下：至少让窗口半透明
