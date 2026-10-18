@@ -256,6 +256,7 @@ public class LiquidGlassView extends FrameLayout {
             drawRipples(canvas);
         } catch (Throwable t) {
             Log.e(TAG, "绘制失败，兜底纯色: " + t.getMessage());
+            DanmakuSpider.log("LiquidGlassView 绘制异常: " + t.getMessage());  // ← 加这行
             canvas.drawColor(mDarkMode ? 0xCC1A1A2E : 0xB3FFFFFF);
         }
 
