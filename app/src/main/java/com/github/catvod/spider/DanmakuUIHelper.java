@@ -169,7 +169,7 @@ public class DanmakuUIHelper {
                     
                     Button apiManagerBtn = createStyledButton(activity, "API源管理", TERTIARY_COLOR);
                     LinearLayout.LayoutParams apiManagerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 42));
+                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 63));
                     apiManagerParams.setMargins(0, 0, 0, dpToPx(activity, 12));
                     apiManagerBtn.setLayoutParams(apiManagerParams);
                     mainLayout.addView(apiManagerBtn);
