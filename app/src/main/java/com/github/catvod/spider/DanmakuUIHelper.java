@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
@@ -282,8 +281,6 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        mainLayout.setPadding(dpToPx(activity, 8), dpToPx(activity, 8),
-                                dpToPx(activity, 8), dpToPx(activity, 8));   // ← 缩小到 8dp
                         liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -294,7 +291,6 @@ public class DanmakuUIHelper {
                     AlertDialog dialog = builder.create();
                     if (isLiquidMode1) {
                         applyRealBlur(dialog);
-                        clearDialogContainerBackgrounds(dialog);   // ← 加这行
                         if (dialog.getWindow() != null)
                             dialog.getWindow().setBackgroundDrawable(
                                     new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -459,7 +455,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode2) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -797,7 +792,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode3) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1178,7 +1172,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode4) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1371,7 +1364,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode5) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1521,7 +1513,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode6) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1660,7 +1651,6 @@ public class DanmakuUIHelper {
 
                 if (isLiquidMode7) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -2085,7 +2075,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidLog) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -2315,7 +2304,7 @@ public class DanmakuUIHelper {
                     tabContainer.setGravity(Gravity.CENTER_VERTICAL);
                     tabContainer.setPadding(dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4), dpToPx(activity, 4));
                     if (isLiquid) {
-                        tabContainer.setBackgroundColor(0x11FFFFFF);
+                        tabContainer.setBackgroundColor(0x33FFFFFF);
                     } else {
                         tabContainer.setBackgroundColor(isTemplate3 ? DARK_BG_TERTIARY : BACKGROUND_LIGHT);
                     }
@@ -2327,8 +2316,6 @@ public class DanmakuUIHelper {
                     HorizontalScrollView tabScroll = new HorizontalScrollView(activity);
                     tabScroll.setHorizontalScrollBarEnabled(false);
                     tabScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
-                    tabScroll.setVerticalFadingEdgeEnabled(false);      // ← 加
-                    tabScroll.setHorizontalFadingEdgeEnabled(false);    // ← 加
                     tabScroll.addView(tabContainer);
                     LinearLayout.LayoutParams tabScrollParams = new LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2338,8 +2325,6 @@ public class DanmakuUIHelper {
     
                     ScrollView resultScroll = new ScrollView(activity);
                     resultScroll.setBackgroundColor((isTemplate3 || isLiquid) ? Color.TRANSPARENT : BACKGROUND_WHITE);
-                    resultScroll.setVerticalFadingEdgeEnabled(false);    // ← 加
-                    resultScroll.setHorizontalFadingEdgeEnabled(false);  // ← 加
                     LinearLayout resultContainer = new LinearLayout(activity);
                     resultContainer.setOrientation(LinearLayout.VERTICAL);
                     resultContainer.setPadding(0, 10, 0, 0);
@@ -2360,41 +2345,30 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
-                        liquidRoot.setRefractionEnabled(false);   // ← 加这一行，关闭折射
-                        // 降低折射强度，避免背景残留被放大
-                        liquidRoot.setRefractionStrength(0.012f);   // 从默认 0.03 降到 0.015
-                        liquidRoot.setDispersionStrength(0.00f);    // 从默认 0.03 降到 0.01
+                        // ====== 加上这三行（测试用）======
+                    //    liquidRoot.setRefractionStrength(0.15f);   // 折射加强5倍
+                    //    liquidRoot.setDispersionStrength(0.12f);   // 色散加强4倍
+                    //    liquidRoot.setHighlightStrength(0.25f);    // 轮廓光加强2.5倍
                         DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
-                        // ====== 只采样弹窗区域的背景 ======
+                        // ====== 抓取屏幕背景，实现真实折射 ======
                         try {
                             android.view.View decor = activity.getWindow().getDecorView();
                             if (decor.getWidth() > 0 && decor.getHeight() > 0) {
-                                int screenW = decor.getWidth();
-                                int screenH = decor.getHeight();
+                                Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
+                                Canvas screenCanvas = new Canvas(screenBitmap);
+                                decor.draw(screenCanvas);
 
-                                // 计算弹窗区域（居中显示）
-                                int dialogW = (int) (screenW * config.getLpWidth());
-                                int dialogH = (int) (screenH * config.getLpHeight());
-                                int left = (screenW - dialogW) / 2;
-                                int top = (screenH - dialogH) / 2;
-
-                                // 只截取弹窗区域
-                                Bitmap regionBitmap = Bitmap.createBitmap(
-                                        Math.max(1, dialogW), Math.max(1, dialogH), Bitmap.Config.ARGB_8888);
-                                Canvas regionCanvas = new Canvas(regionBitmap);
-                                regionCanvas.translate(-left, -top);
-                                decor.draw(regionCanvas);
-
-                                // 轻度模糊（只需消除弹窗区域内的少量 UI）
-                                Bitmap blurred = Bitmap.createBitmap(
-                                        regionBitmap.getWidth(), regionBitmap.getHeight(), Bitmap.Config.ARGB_8888);
-                                Canvas blurCanvas = new Canvas(blurred);
-                                Paint blurPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-                                blurPaint.setMaskFilter(new android.graphics.BlurMaskFilter(
-                                        40, android.graphics.BlurMaskFilter.Blur.NORMAL));
-                                blurCanvas.drawBitmap(regionBitmap, 0, 0, blurPaint);
-                                regionBitmap.recycle();
+                                // ====== 强模糊：让 UI 元素不可辨认 ======
+                                int w = screenBitmap.getWidth();
+                                int h = screenBitmap.getHeight();
+                                int scale = 20;  // 缩小20倍再放大 = 强模糊
+                                int sw = Math.max(1, w / scale);
+                                int sh = Math.max(1, h / scale);
+                                Bitmap small = Bitmap.createScaledBitmap(screenBitmap, sw, sh, true);
+                                Bitmap blurred = Bitmap.createScaledBitmap(small, w, h, true);
+                                screenBitmap.recycle();
+                                small.recycle();
 
                                 liquidRoot.setBackgroundBitmap(blurred);
                             }
@@ -2403,7 +2377,6 @@ public class DanmakuUIHelper {
                         }
 
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        mainLayout.setPadding(0, 0, 0, 0);   // ← 加这行：去掉间隙
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT);
@@ -2535,7 +2508,6 @@ public class DanmakuUIHelper {
                     // ====== 液态模式：开启窗口模糊 + 透明背景 ======
                     if (isLiquid) {
                         applyRealBlur(dialog);
-                        clearDialogContainerBackgrounds(dialog);   // ← 加这行
                         if (dialog.getWindow() != null) {
                             dialog.getWindow().setBackgroundDrawable(
                                     new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -3567,12 +3539,12 @@ public class DanmakuUIHelper {
                     }
                 } else {
                     if (isDarkL) {
-                        bg.setColors(new int[]{0x44303040, 0x22303040});
-                        bg.setStroke(dpToPx(button.getContext(), 0), 0x00000000);
+                        bg.setColors(new int[]{0x66303040, 0x44303040});
+                        bg.setStroke(dpToPx(button.getContext(), 2), 0x66FFFFFF);
                         button.setTextColor(0xDDCCCCCC);
                     } else {
-                        bg.setColors(new int[]{0x44FFFFFF, 0x22FFFFFF});
-                        bg.setStroke(dpToPx(button.getContext(), 0), 0x00000000);
+                        bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
+                        bg.setStroke(dpToPx(button.getContext(), 2), 0x99AAAAAA);
                         button.setTextColor(0xDD222222);
                     }
                 }
@@ -4044,7 +4016,6 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidQR) {
                     applyRealBlur(dialog);
-                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -4542,7 +4513,7 @@ public class DanmakuUIHelper {
     }
     
     /**
-     * 液态玻璃输入框背景（无边框，避免框中框）
+     * 液态玻璃输入框背景
      */
     private static android.graphics.drawable.Drawable createLiquidInputDrawable(Activity activity, boolean focused) {
         boolean isDark = DanmakuConfigManager.getConfig(activity).isDarkMode();
@@ -4554,7 +4525,7 @@ public class DanmakuUIHelper {
                 bg.setStroke(dpToPx(activity, 2), 0xFF00E5FF);
             } else {
                 bg.setColors(new int[]{0x66303040, 0x44303040, 0x66303040});
-                bg.setStroke(dpToPx(activity, 0), 0x00000000);   // ← 无边框
+                bg.setStroke(dpToPx(activity, 2), 0x66FFFFFF);
             }
         } else {
             if (focused) {
@@ -4562,7 +4533,7 @@ public class DanmakuUIHelper {
                 bg.setStroke(dpToPx(activity, 2), 0xFF2196F3);
             } else {
                 bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF, 0x66FFFFFF});
-                bg.setStroke(dpToPx(activity, 0), 0x00000000);   // ← 无边框
+                bg.setStroke(dpToPx(activity, 2), 0x99BBBBBB);
             }
         }
         return bg;
@@ -4666,8 +4637,8 @@ public class DanmakuUIHelper {
             LinearLayout mainLayout = new LinearLayout(activity);
             mainLayout.setOrientation(LinearLayout.VERTICAL);
             mainLayout.setBackgroundColor(Color.TRANSPARENT);
-            mainLayout.setPadding(dpToPx(activity, 6), dpToPx(activity, 6),
-                    dpToPx(activity, 6), dpToPx(activity, 6));   // ← 缩小 padding
+            mainLayout.setPadding(dpToPx(activity, 12), dpToPx(activity, 12),
+                    dpToPx(activity, 12), dpToPx(activity, 12));
 
             // 标题
             TextView titleView = new TextView(activity);
@@ -4778,7 +4749,6 @@ public class DanmakuUIHelper {
             // 显示对话框
             safeShowDialog(activity, dialog);
             applyRealBlur(dialog);
-            clearDialogContainerBackgrounds(dialog);   // ← 加这行
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setBackgroundDrawable(
                         new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -4837,57 +4807,6 @@ public class DanmakuUIHelper {
         });
 
         return button;
-    }
-    
-    /**
-     * 清除 AlertDialog 内部容器的默认背景 + 关闭渐隐边缘（消除灰色方框）
-     */
-    private static void clearDialogContainerBackgrounds(AlertDialog dialog) {
-        try {
-            if (dialog.getWindow() == null) return;
-            android.view.View decor = dialog.getWindow().getDecorView();
-            // 延迟执行，确保视图树创建完毕
-            decor.post(() -> {
-                try {
-                    if (decor instanceof ViewGroup) {
-                        clearAllContainerVisuals((ViewGroup) decor);
-                    }
-                } catch (Throwable ignored) {}
-            });
-        } catch (Throwable ignored) {}
-    }
-
-    private static void clearAllContainerVisuals(ViewGroup group) {
-        for (int i = 0; i < group.getChildCount(); i++) {
-            View child = group.getChildAt(i);
-
-            // 关闭所有 ScrollView/HorizontalScrollView 的渐隐边缘（灰色方框主因）
-            if (child instanceof ScrollView) {
-                ((ScrollView) child).setVerticalFadingEdgeEnabled(false);
-                ((ScrollView) child).setHorizontalFadingEdgeEnabled(false);
-            }
-            if (child instanceof HorizontalScrollView) {
-                ((HorizontalScrollView) child).setVerticalFadingEdgeEnabled(false);
-                ((HorizontalScrollView) child).setHorizontalFadingEdgeEnabled(false);
-            }
-
-            // 跳过按钮、输入框、文字（保留它们自己的样式）
-            if (child instanceof android.widget.Button
-                    || child instanceof android.widget.EditText
-                    || child instanceof android.widget.TextView) {
-                continue;
-            }
-
-            // 清除容器类背景
-            if (child instanceof ViewGroup) {
-                child.setBackground(null);
-                // 也清除前景（有些主题用前景画边框）
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    child.setForeground(null);
-                }
-                clearAllContainerVisuals((ViewGroup) child);
-            }
-        }
     }
     
     // 颜色加深辅助方法
