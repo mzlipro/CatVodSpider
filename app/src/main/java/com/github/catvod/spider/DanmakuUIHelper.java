@@ -2359,54 +2359,12 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
-                        // 降低折射强度，避免背景残留被放大
-                        liquidRoot.setRefractionStrength(0.015f);   // 从默认 0.03 降到 0.015
-                        liquidRoot.setDispersionStrength(0.01f);    // 从默认 0.03 降到 0.01
-                        DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
-                        // ====== 抓取屏幕背景，多级强模糊 ======
-                        try {
-                            android.view.View decor = activity.getWindow().getDecorView();
-                            if (decor.getWidth() > 0 && decor.getHeight() > 0) {
-                                Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
-                                Canvas screenCanvas = new Canvas(screenBitmap);
-                                decor.draw(screenCanvas);
-
-                                // ====== 三级降采样模糊：彻底消除 UI 轮廓 ======
-                                int w = screenBitmap.getWidth();
-                                int h = screenBitmap.getHeight();
-
-                                // 第1次：缩小到 1/8
-                                int sw1 = Math.max(1, w / 8);
-                                int sh1 = Math.max(1, h / 8);
-                                Bitmap small1 = Bitmap.createScaledBitmap(screenBitmap, sw1, sh1, true);
-
-                                // 第2次：再缩小到 1/4（累计 1/32）
-                                int sw2 = Math.max(1, sw1 / 4);
-                                int sh2 = Math.max(1, sh1 / 4);
-                                Bitmap small2 = Bitmap.createScaledBitmap(small1, sw2, sh2, true);
-
-                                // 第3次：再缩小到 1/2（累计 1/64）
-                                int sw3 = Math.max(1, sw2 / 2);
-                                int sh3 = Math.max(1, sh2 / 2);
-                                Bitmap small3 = Bitmap.createScaledBitmap(small2, sw3, sh3, true);
-
-                                // 放大回原尺寸
-                                Bitmap blurred = Bitmap.createScaledBitmap(small3, w, h, true);
-
-                                screenBitmap.recycle();
-                                small1.recycle();
-                                small2.recycle();
-                                small3.recycle();
-
-                                liquidRoot.setBackgroundBitmap(blurred);
-                            }
-                        } catch (Throwable t) {
-                            DanmakuSpider.log("背景采样失败: " + t.getMessage());
-                        }
+                        // ====== 删掉从 "// ====== 抓取屏幕背景" 到 "liquidRoot.setBackgroundBitmap(blurred);" 的全部代码 ======
 
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        mainLayout.setPadding(0, 0, 0, 0);   // ← 加这行：去掉间隙
+                        mainLayout.setPadding(dpToPx(activity, 8), dpToPx(activity, 8),
+                                dpToPx(activity, 8), dpToPx(activity, 8));
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT);
