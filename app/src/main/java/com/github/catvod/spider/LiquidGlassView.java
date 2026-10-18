@@ -294,9 +294,9 @@ public class LiquidGlassView extends FrameLayout {
                 ((hlColor >> 8) & 0xFF) / 255f,
                 (hlColor & 0xFF) / 255f,
                 ((hlColor >>> 24) & 0xFF) / 255f);
-        mGlassShader.setFloatUniform("uShimmer", 1f);
-        mGlassShader.setFloatUniform("uInnerShadow", 1f);
-        mGlassShader.setFloatUniform("uEdgeWidth", 4f);
+        mGlassShader.setFloatUniform("uShimmer", 0.15f);
+        mGlassShader.setFloatUniform("uInnerShadow", 0f);
+        mGlassShader.setFloatUniform("uEdgeWidth", 0f);
         int edgeColor = mDarkMode ? 0x5500E5FF : 0x66FFFFFF;
         mGlassShader.setFloatUniform("uEdgeColor",
                 ((edgeColor >> 16) & 0xFF) / 255f,
