@@ -48,14 +48,14 @@ public class LiquidGlassView extends FrameLayout {
         "uniform float uRefractionRadiusScale;" +
         "uniform float uHighlightWidth;" +
         "uniform float uGlassAlpha;" +
-        "uniform half4 uGlassTint;" +
+        "uniform vec4 uGlassTint;" +
         "uniform float uTime;" +
         "uniform float uBreathing;" +
-        "uniform half4 uHighlightColor;" +
+        "uniform vec4 uHighlightColor;" +
         "uniform float uShimmer;" +
         "uniform float uInnerShadow;" +
         "uniform float uEdgeWidth;" +
-        "uniform half4 uEdgeColor;" +
+        "uniform vec4 uEdgeColor;" +
         "\n" +
         "const float PI = 3.14159265359;\n" +
         "\n" +
@@ -279,14 +279,30 @@ public class LiquidGlassView extends FrameLayout {
         mGlassShader.setFloatUniform("uRefractionRadiusScale", mRefractionRadiusScale);
         mGlassShader.setFloatUniform("uHighlightWidth", 50f / 255f);
         mGlassShader.setFloatUniform("uGlassAlpha", mGlassAlpha);
-        mGlassShader.setColorUniform("uGlassTint", mDarkMode ? 0xFF1A1A2E : mTintColor);
+        // 用 setFloatUniform 传 RGBA 分量，避免 half4/vec4 类型问题
+        int tintColor = mDarkMode ? 0xFF1A1A2E : mTintColor;
+        mGlassShader.setFloatUniform("uGlassTint",
+                ((tintColor >> 16) & 0xFF) / 255f,
+                ((tintColor >> 8) & 0xFF) / 255f,
+                (tintColor & 0xFF) / 255f,
+                ((tintColor >>> 24) & 0xFF) / 255f);
         mGlassShader.setFloatUniform("uTime", t);
         mGlassShader.setFloatUniform("uBreathing", mBreathing ? 0.35f : 0f);
-        mGlassShader.setColorUniform("uHighlightColor", mDarkMode ? 0x6600E5FF : 0xDDFFFFFF);
+        int hlColor = mDarkMode ? 0x6600E5FF : 0xDDFFFFFF;
+        mGlassShader.setFloatUniform("uHighlightColor",
+                ((hlColor >> 16) & 0xFF) / 255f,
+                ((hlColor >> 8) & 0xFF) / 255f,
+                (hlColor & 0xFF) / 255f,
+                ((hlColor >>> 24) & 0xFF) / 255f);
         mGlassShader.setFloatUniform("uShimmer", 1f);
         mGlassShader.setFloatUniform("uInnerShadow", 1f);
         mGlassShader.setFloatUniform("uEdgeWidth", 4f);
-        mGlassShader.setColorUniform("uEdgeColor", mDarkMode ? 0x5500E5FF : 0x66FFFFFF);
+        int edgeColor = mDarkMode ? 0x5500E5FF : 0x66FFFFFF;
+        mGlassShader.setFloatUniform("uEdgeColor",
+                ((edgeColor >> 16) & 0xFF) / 255f,
+                ((edgeColor >> 8) & 0xFF) / 255f,
+                (edgeColor & 0xFF) / 255f,
+                ((edgeColor >>> 24) & 0xFF) / 255f);
 
         if (bgShader != null) {
             mGlassShader.setInputShader("background", bgShader);
