@@ -304,18 +304,17 @@ public class LiquidGlassView extends FrameLayout {
                 (edgeColor & 0xFF) / 255f,
                 ((edgeColor >>> 24) & 0xFF) / 255f);
 
-        if (bgShader == null) {
-            // 生成渐变背景
-            LinearGradient gradient = new LinearGradient(0, 0, w, h,
-                    mDarkMode ?
-                        new int[]{0xFF1A1A2E, 0xFF0D0D1A, 0xFF1A1A2E} :
-                        new int[]{0xFFDDE3EA, 0xFFB8C2CC, 0xFFDDE3EA},
-                    null, Shader.TileMode.CLAMP);
-            mShaderPaint.setShader(gradient);
-            canvas.drawRect(0, 0, w, h, mShaderPaint);
-            bgShader = gradient;
+        if (bgShader != null) {
+            mGlassShader.setInputShader("background", bgShader);
+        } else {
+            int flatColor = mDarkMode ? 0xFF14141F : 0xFFDDE3EA;
+            mFlatBgShader.setFloatUniform("uColor",
+                    ((flatColor >> 16) & 0xFF) / 255f,
+                    ((flatColor >> 8) & 0xFF) / 255f,
+                    (flatColor & 0xFF) / 255f,
+                    ((flatColor >>> 24) & 0xFF) / 255f);
+            mGlassShader.setInputShader("background", mFlatBgShader);
         }
-        mGlassShader.setInputShader("background", bgShader);
 
         mShaderPaint.setShader(mGlassShader);
         canvas.drawRect(0, 0, w, h, mShaderPaint);
@@ -330,18 +329,13 @@ public class LiquidGlassView extends FrameLayout {
             }
             return mBackgroundShader;
         }
-        // 用渐变代替纯色，让折射效果更自然
-        LinearGradient gradient;
-        if (mDarkMode) {
-            gradient = new LinearGradient(0, 0, w, h,
-                    new int[]{0xFF1A1A2E, 0xFF14141F, 0xFF0D0D1A, 0xFF1A1A2E},
-                    null, Shader.TileMode.CLAMP);
-        } else {
-            gradient = new LinearGradient(0, 0, w, h,
-                    new int[]{0xFFDDE3EA, 0xFFC5CDD6, 0xFFB8C2CC, 0xFFDDE3EA},
-                    null, Shader.TileMode.CLAMP);
-        }
-        return gradient;  // ← 直接返回渐变shader
+        int flatColor = mDarkMode ? 0xFF14141F : 0xFFDDE3EA;
+        mFlatBgShader.setFloatUniform("uColor",
+                ((flatColor >> 16) & 0xFF) / 255f,
+                ((flatColor >> 8) & 0xFF) / 255f,
+                (flatColor & 0xFF) / 255f,
+                ((flatColor >>> 24) & 0xFF) / 255f);
+        return mFlatBgShader;
     }
 
     // -------------------- Canvas 兜底路径 --------------------
