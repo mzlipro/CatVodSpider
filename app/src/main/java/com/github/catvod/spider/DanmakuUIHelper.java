@@ -2360,6 +2360,7 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
+                        liquidRoot.setRefractionEnabled(false);   // ← 加这一行，关闭折射
                         // 降低折射强度，避免背景残留被放大
                         liquidRoot.setRefractionStrength(0.012f);   // 从默认 0.03 降到 0.015
                         liquidRoot.setDispersionStrength(0.00f);    // 从默认 0.03 降到 0.01
