@@ -2365,44 +2365,35 @@ public class DanmakuUIHelper {
                         liquidRoot.setDispersionStrength(0.00f);    // 从默认 0.03 降到 0.01
                         DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
-                        // ====== 抓取屏幕背景，多级强模糊 ======
-                        // ====== 抓取屏幕背景，极限模糊 ======
+                        // ====== 只采样弹窗区域的背景 ======
                         try {
                             android.view.View decor = activity.getWindow().getDecorView();
                             if (decor.getWidth() > 0 && decor.getHeight() > 0) {
-                                Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
-                                Canvas screenCanvas = new Canvas(screenBitmap);
-                                decor.draw(screenCanvas);
+                                int screenW = decor.getWidth();
+                                int screenH = decor.getHeight();
 
-                                int w = screenBitmap.getWidth();
-                                int h = screenBitmap.getHeight();
+                                // 计算弹窗区域（居中显示）
+                                int dialogW = (int) (screenW * config.getLpWidth());
+                                int dialogH = (int) (screenH * config.getLpHeight());
+                                int left = (screenW - dialogW) / 2;
+                                int top = (screenH - dialogH) / 2;
 
-                                // 第1次降采样：1/16
-                                Bitmap s1 = Bitmap.createScaledBitmap(screenBitmap,
-                                        Math.max(1, w / 16), Math.max(1, h / 16), true);
+                                // 只截取弹窗区域
+                                Bitmap regionBitmap = Bitmap.createBitmap(
+                                        Math.max(1, dialogW), Math.max(1, dialogH), Bitmap.Config.ARGB_8888);
+                                Canvas regionCanvas = new Canvas(regionBitmap);
+                                regionCanvas.translate(-left, -top);
+                                decor.draw(regionCanvas);
 
-                                // 第2次降采样：1/8（累计 1/128）
-                                Bitmap s2 = Bitmap.createScaledBitmap(s1,
-                                        Math.max(1, s1.getWidth() / 8), Math.max(1, s1.getHeight() / 8), true);
-
-                                // 第3次降采样：1/4（累计 1/512，基本只剩色块）
-                                Bitmap s3 = Bitmap.createScaledBitmap(s2,
-                                        Math.max(1, s2.getWidth() / 4), Math.max(1, s2.getHeight() / 4), true);
-
-                                // 放大回来 + Paint 高斯模糊
-                                Bitmap enlarged = Bitmap.createScaledBitmap(s3, w, h, true);
-                                Bitmap blurred = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                                // 轻度模糊（只需消除弹窗区域内的少量 UI）
+                                Bitmap blurred = Bitmap.createBitmap(
+                                        regionBitmap.getWidth(), regionBitmap.getHeight(), Bitmap.Config.ARGB_8888);
                                 Canvas blurCanvas = new Canvas(blurred);
                                 Paint blurPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
                                 blurPaint.setMaskFilter(new android.graphics.BlurMaskFilter(
-                                        60, android.graphics.BlurMaskFilter.Blur.NORMAL));
-                                blurCanvas.drawBitmap(enlarged, 0, 0, blurPaint);
-
-                                screenBitmap.recycle();
-                                s1.recycle();
-                                s2.recycle();
-                                s3.recycle();
-                                enlarged.recycle();
+                                        40, android.graphics.BlurMaskFilter.Blur.NORMAL));
+                                blurCanvas.drawBitmap(regionBitmap, 0, 0, blurPaint);
+                                regionBitmap.recycle();
 
                                 liquidRoot.setBackgroundBitmap(blurred);
                             }
