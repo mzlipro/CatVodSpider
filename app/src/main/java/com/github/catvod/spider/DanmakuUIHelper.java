@@ -4756,6 +4756,14 @@ public class DanmakuUIHelper {
             }
             cancelBtn.setOnClickListener(v -> dialog.dismiss());
 
+//验证代码测试用
+                    // ====== 彻底去掉 Dialog 所有装饰 ======
+                    if (dialog.getWindow() != null) {
+                        dialog.getWindow().setBackgroundDrawable(
+                                new android.graphics.drawable.ColorDrawable(0x00000000));
+                        dialog.getWindow().requestFeature(android.view.Window.FEATURE_NO_TITLE);
+                    }
+                    
             // 显示对话框
             safeShowDialog(activity, dialog);
             applyRealBlur(dialog);
