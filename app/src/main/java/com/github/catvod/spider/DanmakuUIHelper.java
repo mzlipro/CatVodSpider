@@ -169,7 +169,7 @@ public class DanmakuUIHelper {
                     
                     Button apiManagerBtn = createStyledButton(activity, "API源管理", TERTIARY_COLOR);
                     LinearLayout.LayoutParams apiManagerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(activity, 63));
+                            ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 42));
                     apiManagerParams.setMargins(0, 0, 0, dpToPx(activity, 12));
                     apiManagerBtn.setLayoutParams(apiManagerParams);
                     mainLayout.addView(apiManagerBtn);
@@ -301,7 +301,7 @@ public class DanmakuUIHelper {
                         android.view.Window window = dialog.getWindow();
                         if (window != null) {
                             android.view.WindowManager.LayoutParams params = window.getAttributes();
-                            params.width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.85f);
+                            params.width = ViewGroup.LayoutParams.WRAP_CONTENT;   // ← 与API源管理一致，不指定宽度
                             params.height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.78f);
                             window.setAttributes(params);
                         }
