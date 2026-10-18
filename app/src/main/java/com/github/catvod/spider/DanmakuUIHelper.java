@@ -2359,12 +2359,58 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
+                        // 降低折射强度，避免背景残留被放大
+                        liquidRoot.setRefractionStrength(0.012f);   // 从默认 0.03 降到 0.015
+                        liquidRoot.setDispersionStrength(0.00f);    // 从默认 0.03 降到 0.01
+                        DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
-                        // ====== 删掉从 "// ====== 抓取屏幕背景" 到 "liquidRoot.setBackgroundBitmap(blurred);" 的全部代码 ======
+                        // ====== 抓取屏幕背景，多级强模糊 ======
+                        // ====== 抓取屏幕背景，极限模糊 ======
+                        try {
+                            android.view.View decor = activity.getWindow().getDecorView();
+                            if (decor.getWidth() > 0 && decor.getHeight() > 0) {
+                                Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
+                                Canvas screenCanvas = new Canvas(screenBitmap);
+                                decor.draw(screenCanvas);
+
+                                int w = screenBitmap.getWidth();
+                                int h = screenBitmap.getHeight();
+
+                                // 第1次降采样：1/16
+                                Bitmap s1 = Bitmap.createScaledBitmap(screenBitmap,
+                                        Math.max(1, w / 16), Math.max(1, h / 16), true);
+
+                                // 第2次降采样：1/8（累计 1/128）
+                                Bitmap s2 = Bitmap.createScaledBitmap(s1,
+                                        Math.max(1, s1.getWidth() / 8), Math.max(1, s1.getHeight() / 8), true);
+
+                                // 第3次降采样：1/4（累计 1/512，基本只剩色块）
+                                Bitmap s3 = Bitmap.createScaledBitmap(s2,
+                                        Math.max(1, s2.getWidth() / 4), Math.max(1, s2.getHeight() / 4), true);
+
+                                // 放大回来 + Paint 高斯模糊
+                                Bitmap enlarged = Bitmap.createScaledBitmap(s3, w, h, true);
+                                Bitmap blurred = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                                Canvas blurCanvas = new Canvas(blurred);
+                                Paint blurPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+                                blurPaint.setMaskFilter(new android.graphics.BlurMaskFilter(
+                                        60, android.graphics.BlurMaskFilter.Blur.NORMAL));
+                                blurCanvas.drawBitmap(enlarged, 0, 0, blurPaint);
+
+                                screenBitmap.recycle();
+                                s1.recycle();
+                                s2.recycle();
+                                s3.recycle();
+                                enlarged.recycle();
+
+                                liquidRoot.setBackgroundBitmap(blurred);
+                            }
+                        } catch (Throwable t) {
+                            DanmakuSpider.log("背景采样失败: " + t.getMessage());
+                        }
 
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
-                        mainLayout.setPadding(dpToPx(activity, 8), dpToPx(activity, 8),
-                                dpToPx(activity, 8), dpToPx(activity, 8));
+                        mainLayout.setPadding(0, 0, 0, 0);   // ← 加这行：去掉间隙
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT);
