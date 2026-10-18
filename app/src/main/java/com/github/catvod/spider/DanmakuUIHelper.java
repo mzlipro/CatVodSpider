@@ -280,7 +280,6 @@ public class DanmakuUIHelper {
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
-                        liquidRoot.setRefractionEnabled(false);  // 仅保留玻璃质感，消除所有折射变形
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
                         liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
