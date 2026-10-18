@@ -166,6 +166,13 @@ public class DanmakuUIHelper {
                     subtitle.setGravity(Gravity.CENTER);
                     subtitle.setPadding(0, 0, 0, dpToPx(activity, 16));
                     mainLayout.addView(subtitle);
+                    
+                    Button apiManagerBtn = createStyledButton(activity, "API源管理", TERTIARY_COLOR);
+                    LinearLayout.LayoutParams apiManagerParams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 42));
+                    apiManagerParams.setMargins(0, 0, 0, dpToPx(activity, 12));
+                    apiManagerBtn.setLayoutParams(apiManagerParams);
+                    mainLayout.addView(apiManagerBtn);
 
                     // IP地址提示 - 改进样式
                     TextView ipInfo = new TextView(activity);
@@ -210,13 +217,6 @@ public class DanmakuUIHelper {
                     apiSummary.setTextColor(TEXT_SECONDARY);
                     apiSummary.setPadding(0, 0, 0, dpToPx(activity, 8));
                     mainLayout.addView(apiSummary);
-
-                    Button apiManagerBtn = createStyledButton(activity, "API源管理", TERTIARY_COLOR);
-                    LinearLayout.LayoutParams apiManagerParams = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(activity, 42));
-                    apiManagerParams.setMargins(0, 0, 0, dpToPx(activity, 12));
-                    apiManagerBtn.setLayoutParams(apiManagerParams);
-                    mainLayout.addView(apiManagerBtn);
 
                     TextView offsetLabel = new TextView(activity);
                     offsetLabel.setText("弹幕时间偏移（秒，负数提前）");
@@ -295,14 +295,23 @@ public class DanmakuUIHelper {
                             dialog.getWindow().setBackgroundDrawable(
                                     new android.graphics.drawable.ColorDrawable(0x00000000));
                     }
-                    dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                            dpToPx(activity, 600)); // 设置固定高度
-
+    
+                    // ====== 修复：show 之后按屏幕比例设窗口尺寸（原来是 MATCH_PARENT×600dp 导致全屏）======
+                    dialog.setOnShowListener(d -> {
+                        android.view.Window window = dialog.getWindow();
+                        if (window != null) {
+                            android.view.WindowManager.LayoutParams params = window.getAttributes();
+                            params.width = (int) (activity.getResources().getDisplayMetrics().widthPixels * 0.85f);
+                            params.height = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.78f);
+                            window.setAttributes(params);
+                        }
+                    });
+    
                     // 按钮事件
                     saveBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            String text = apiInput.getText().toString();
+                            String text = 管理Input.getText().toString();
                             String[] lines = text.split("\n");
                             Set<String> newUrls = new LinkedHashSet<>();
                             for (String line : lines) {
