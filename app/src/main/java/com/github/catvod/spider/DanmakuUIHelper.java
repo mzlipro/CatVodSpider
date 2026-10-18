@@ -2351,30 +2351,6 @@ public class DanmakuUIHelper {
                     //    liquidRoot.setHighlightStrength(0.25f);    // 轮廓光加强2.5倍
                         DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
-                        // ====== 抓取屏幕背景，实现真实折射 ======
-                        try {
-                            android.view.View decor = activity.getWindow().getDecorView();
-                            if (decor.getWidth() > 0 && decor.getHeight() > 0) {
-                                Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
-                                Canvas screenCanvas = new Canvas(screenBitmap);
-                                decor.draw(screenCanvas);
-
-                                // ====== 强模糊：让 UI 元素不可辨认 ======
-                                int w = screenBitmap.getWidth();
-                                int h = screenBitmap.getHeight();
-                                int scale = 20;  // 缩小20倍再放大 = 强模糊
-                                int sw = Math.max(1, w / scale);
-                                int sh = Math.max(1, h / scale);
-                                Bitmap small = Bitmap.createScaledBitmap(screenBitmap, sw, sh, true);
-                                Bitmap blurred = Bitmap.createScaledBitmap(small, w, h, true);
-                                screenBitmap.recycle();
-                                small.recycle();
-
-                                liquidRoot.setBackgroundBitmap(blurred);
-                            }
-                        } catch (Throwable t) {
-                            DanmakuSpider.log("背景采样失败: " + t.getMessage());
-                        }
 
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
