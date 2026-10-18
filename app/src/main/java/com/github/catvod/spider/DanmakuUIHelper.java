@@ -1720,26 +1720,21 @@ public class DanmakuUIHelper {
         Button button = new Button(activity);
         button.setText(text);
         button.setTextColor(color);
-        button.setBackground(createTVFocusableBorderDrawable(color, false));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
-        // 启用焦点支持电视端
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
 
-        // 添加电视端焦点效果 - 高对比度发光边框
+        // ====== 性能优化：两种状态的背景预先创建 ======
+        final android.graphics.drawable.Drawable normalBg = createTVFocusableBorderDrawable(color, false);
+        final android.graphics.drawable.Drawable focusBg = createTVFocusableBorderDrawable(TV_FOCUS_BORDER_COLOR, true);
+        button.setBackground(normalBg);
+
         button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    // 获得焦点时：发光边框 + 填充背景 + 白色文字
-                    ((Button) v).setBackground(createTVFocusableBorderDrawable(TV_FOCUS_BORDER_COLOR, true));
-                    ((Button) v).setTextColor(TV_FOCUS_TEXT_COLOR);
-                } else {
-                    // 失去焦点时恢复边框样式
-                    ((Button) v).setBackground(createTVFocusableBorderDrawable(color, false));
-                    ((Button) v).setTextColor(color);
-                }
+                v.setBackground(hasFocus ? focusBg : normalBg);
+                ((Button) v).setTextColor(hasFocus ? TV_FOCUS_TEXT_COLOR : color);
             }
         });
 
@@ -1751,23 +1746,21 @@ public class DanmakuUIHelper {
         Button button = new Button(activity);
         button.setText(text);
         button.setTextColor(Color.WHITE);
-        button.setBackground(createTVFocusableSolidDrawable(backgroundColor, false));
         button.setTextSize(14);
         button.setTypeface(null, android.graphics.Typeface.BOLD);
-        // 启用焦点支持电视端遥控器，但不开启 touchMode 避免手机要点两次
         button.setFocusable(true);
-        button.setFocusableInTouchMode(false);   // ← 改为 false
+        button.setFocusableInTouchMode(false);
+
+        // ====== 性能优化：两种状态的背景预先创建，焦点切换不再分配对象 ======
+        final android.graphics.drawable.Drawable normalBg = createTVFocusableSolidDrawable(backgroundColor, false);
+        final android.graphics.drawable.Drawable focusBg = createTVFocusableSolidDrawable(backgroundColor, true);
+        button.setBackground(normalBg);
 
         button.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    ((Button) v).setBackground(createTVFocusableSolidDrawable(backgroundColor, true));
-                    ((Button) v).setTextColor(TV_FOCUS_TEXT_COLOR);
-                } else {
-                    ((Button) v).setBackground(createTVFocusableSolidDrawable(backgroundColor, false));
-                    ((Button) v).setTextColor(Color.WHITE);
-                }
+                v.setBackground(hasFocus ? focusBg : normalBg);
+                ((Button) v).setTextColor(hasFocus ? TV_FOCUS_TEXT_COLOR : Color.WHITE);
             }
         });
 
@@ -4345,8 +4338,8 @@ public class DanmakuUIHelper {
                         try {
                             android.view.Window w = dialog.getWindow();
                             if (w != null && w.getDecorView() != null) {
-                                w.setBackgroundBlurRadius(60);
-                                w.getAttributes().setBlurBehindRadius(60);
+                                w.setBackgroundBlurRadius(28); //模糊半径
+                                w.getAttributes().setBlurBehindRadius(28);
                                 w.addFlags(android.view.WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
                             }
                         } catch (Throwable t) {
