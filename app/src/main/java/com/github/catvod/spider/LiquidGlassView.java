@@ -237,7 +237,7 @@ public class LiquidGlassView extends FrameLayout {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        mGlassInset = Math.min(w, h) * 0.06f;
+        mGlassInset = 0f;              // ← 改为 0，消除灰色方形框
         mDirtySampling = true;
     }
 
