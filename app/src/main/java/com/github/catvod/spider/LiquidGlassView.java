@@ -202,7 +202,15 @@ public class LiquidGlassView extends FrameLayout {
     private final Paint mShimmerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mRipplePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mShaderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint mBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);   // ← 新增：兜底背景画笔
+    private final Paint mBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    // ====== 性能优化：复用画笔，避免每帧 new Paint ======
+    private final Paint mDispersionRedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mDispersionBluePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mTopHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    // ====== 性能优化：涟漪开关，默认关闭（点击不再触发 0.8s 重绘循环）======
+    private boolean mRippleEnabled = false;
 
     private RuntimeShader mGlassShader;
     private RuntimeShader mFlatBgShader;
@@ -248,6 +256,10 @@ public class LiquidGlassView extends FrameLayout {
             mAgslAvailable = false;
             Log.i(TAG, "API < 33，使用 Canvas 路径");
         }
+        mDispersionRedPaint.setColor(0x22FF0000);
+        mDispersionBluePaint.setColor(0x220000FF);
+        mTopHighlightPaint.setStyle(Paint.Style.STROKE);
+        mTopHighlightPaint.setStrokeWidth(dp(2));
     }
 
     // ====================== 绘制 ======================
@@ -267,10 +279,13 @@ public class LiquidGlassView extends FrameLayout {
         if (w == 0 || h == 0) return;
 
         try {
-            if (mAgslAvailable && mRefractionEnabled) {
-                drawWithShader(canvas, w, h);
-            } else {
+            boolean hasBg = mBackgroundBitmap != null && !mBackgroundBitmap.isRecycled();
+            if (hasBg && mAgslAvailable && mRefractionEnabled) {
+                drawWithShader(canvas, w, h);      // 有背景位图才需要折射/色散
+            } else if (hasBg) {
                 drawWithCanvas(canvas, w, h);
+            } else {
+                drawFastGlass(canvas, w, h);        // 纯色玻璃快路径
             }
             drawRipples(canvas);
         } catch (Throwable t) {
@@ -282,6 +297,25 @@ public class LiquidGlassView extends FrameLayout {
         super.onDraw(canvas);
     }
 
+    // ====== 性能优化：无背景位图时的快速绘制 ======
+    // 纯色背景下 shader 的折射/色散/高光均为无效输出，结果等价于一块半透明圆角玻璃
+    private void drawFastGlass(Canvas canvas, int w, int h) {
+        float r = dp(mCornerRadius);
+        int flat = mDarkMode ? 0xFF14141F : 0xFFDDE3EA;
+        int tint = mDarkMode ? 0xFF1A1A2E : mTintColor;
+        mTintPaint.setColor(mixColor(flat, tint, mGlassAlpha));
+        mTintPaint.setAlpha(Math.round(mGlassAlpha * 255));
+        canvas.drawRoundRect(0, 0, w, h, r, r, mTintPaint);
+    }
+
+    private static int mixColor(int c1, int c2, float t) {
+        int a = Math.round(((c1 >>> 24) & 0xFF) * (1 - t) + ((c2 >>> 24) & 0xFF) * t);
+        int r = Math.round(((c1 >> 16) & 0xFF) * (1 - t) + ((c2 >> 16) & 0xFF) * t);
+        int g = Math.round(((c1 >> 8) & 0xFF) * (1 - t) + ((c2 >> 8) & 0xFF) * t);
+        int b = Math.round((c1 & 0xFF) * (1 - t) + (c2 & 0xFF) * t);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+    
     // -------------------- AGSL 主路径 --------------------
 
     private void drawWithShader(Canvas canvas, int w, int h) {
@@ -410,27 +444,18 @@ public class LiquidGlassView extends FrameLayout {
 
     private void drawDispersionLayers(Canvas canvas, RectF rect, float rx, float ry) {
         int shift = (int) (mDispersionStrength * 40);
-        Paint red = new Paint(Paint.ANTI_ALIAS_FLAG);
-        red.setColor(0x22FF0000);
-        Paint blue = new Paint(Paint.ANTI_ALIAS_FLAG);
-        blue.setColor(0x220000FF);
         RectF rRect = new RectF(rect.left + shift, rect.top, rect.right + shift, rect.bottom);
         RectF bRect = new RectF(rect.left - shift, rect.top, rect.right - shift, rect.bottom);
-        canvas.drawRoundRect(rRect, rx, ry, red);
-        canvas.drawRoundRect(bRect, rx, ry, blue);
+        canvas.drawRoundRect(rRect, rx, ry, mDispersionRedPaint);
+        canvas.drawRoundRect(bRect, rx, ry, mDispersionBluePaint);
     }
 
-    // ====== 修复4：顶部高光改为顶部圆角条带 Path，去掉 dp(6) 近直角小框 ======
     private void drawTopHighlight(Canvas canvas, RectF rect) {
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(dp(2));
-        p.setColor(mDarkMode ? 0x6600E5FF : 0xAAFFFFFF);
+        mTopHighlightPaint.setColor(mDarkMode ? 0x6600E5FF : 0xAAFFFFFF);
 
         float rx = dp(mCornerRadius);
         float inset = dp(2);
         Path path = new Path();
-        // 顶部一条带圆角的弧线：左上圆角 → 顶边 → 右上圆角
         path.moveTo(rect.left + rx, rect.top + inset);
         path.lineTo(rect.right - rx, rect.top + inset);
         path.arcTo(new RectF(rect.right - rx * 2, rect.top + inset,
@@ -438,7 +463,7 @@ public class LiquidGlassView extends FrameLayout {
         path.moveTo(rect.left + rx, rect.top + inset);
         path.arcTo(new RectF(rect.left, rect.top + inset,
                 rect.left + rx * 2, rect.top + inset + rx * 2), 180, 90, false);
-        canvas.drawPath(path, p);
+        canvas.drawPath(path, mTopHighlightPaint);
     }
 
     private void drawInnerShadow(Canvas canvas, RectF rect, float rx, float ry) {
@@ -523,7 +548,9 @@ public class LiquidGlassView extends FrameLayout {
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                addRipple(event.getX(), event.getY());
+                if (mRippleEnabled) {
+                    addRipple(event.getX(), event.getY());
+                }
                 break;
             default:
                 break;
@@ -540,6 +567,15 @@ public class LiquidGlassView extends FrameLayout {
         invalidate();
     }
 
+    /** 涟漪效果开关（默认关闭，避免点击引发持续重绘） */
+    public void setRippleEnabled(boolean enabled) {
+        mRippleEnabled = enabled;
+        if (!enabled) {
+            mRipples.clear();
+            invalidate();
+        }
+    }
+    
     // ====================== 动画 ======================
 
     public void startBreathing() {
