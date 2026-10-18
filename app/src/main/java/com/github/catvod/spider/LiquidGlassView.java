@@ -199,6 +199,7 @@ public class LiquidGlassView extends FrameLayout {
         init();
     }
 
+    
     private void init() {
         setWillNotDraw(false);
         setClipChildren(false);
@@ -507,6 +508,20 @@ public class LiquidGlassView extends FrameLayout {
 
     // ====================== 参数设置 ======================
 
+    /**
+     * 当前使用的渲染路径
+     */
+    public String getRenderMode() {
+        return mAgslAvailable && mRefractionEnabled ? "AGSL (GPU)" : "Canvas (兜底)";
+    }
+
+    /**
+     * 是否使用 AGSL
+     */
+    public boolean isAgslAvailable() {
+        return mAgslAvailable;
+    }
+    
     /** 深色模式开关 */
     public void setDarkMode(boolean dark) {
         mDarkMode = dark;
