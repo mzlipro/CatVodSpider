@@ -147,7 +147,7 @@ public class LiquidGlassView extends FrameLayout {
         "}\n";
 
     private static final String FLAT_BG_SHADER =
-        "uniform vec4 uColor;" +
+        "uniform half4 uColor;" +
         "vec4 main(vec2 fragCoord) { return uColor; }";
 
     // ====================== 状态字段 ======================
@@ -307,7 +307,12 @@ public class LiquidGlassView extends FrameLayout {
         if (bgShader != null) {
             mGlassShader.setInputShader("background", bgShader);
         } else {
-            mFlatBgShader.setColorUniform("uColor", mDarkMode ? 0xFF14141F : 0xFFDDE3EA);
+            int flatColor = mDarkMode ? 0xFF14141F : 0xFFDDE3EA;
+            mFlatBgShader.setFloatUniform("uColor",
+                    ((flatColor >> 16) & 0xFF) / 255f,
+                    ((flatColor >> 8) & 0xFF) / 255f,
+                    (flatColor & 0xFF) / 255f,
+                    ((flatColor >>> 24) & 0xFF) / 255f);
             mGlassShader.setInputShader("background", mFlatBgShader);
         }
 
@@ -324,7 +329,12 @@ public class LiquidGlassView extends FrameLayout {
             }
             return mBackgroundShader;
         }
-        mFlatBgShader.setColorUniform("uColor", mDarkMode ? 0xFF14141F : 0xFFDDE3EA);
+        int flatColor = mDarkMode ? 0xFF14141F : 0xFFDDE3EA;
+        mFlatBgShader.setFloatUniform("uColor",
+                ((flatColor >> 16) & 0xFF) / 255f,
+                ((flatColor >> 8) & 0xFF) / 255f,
+                (flatColor & 0xFF) / 255f,
+                ((flatColor >>> 24) & 0xFF) / 255f);
         return mFlatBgShader;
     }
 
