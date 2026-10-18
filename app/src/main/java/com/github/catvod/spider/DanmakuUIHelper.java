@@ -2359,13 +2359,12 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());
-                        // ====== 加上这三行（测试用）======
-                    //    liquidRoot.setRefractionStrength(0.15f);   // 折射加强5倍
-                    //    liquidRoot.setDispersionStrength(0.12f);   // 色散加强4倍
-                    //    liquidRoot.setHighlightStrength(0.25f);    // 轮廓光加强2.5倍
+                        // 降低折射强度，避免背景残留被放大
+                        liquidRoot.setRefractionStrength(0.015f);   // 从默认 0.03 降到 0.015
+                        liquidRoot.setDispersionStrength(0.01f);    // 从默认 0.03 降到 0.01
                         DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());
 
-                        // ====== 抓取屏幕背景，实现真实折射 ======
+                        // ====== 抓取屏幕背景，多级强模糊 ======
                         try {
                             android.view.View decor = activity.getWindow().getDecorView();
                             if (decor.getWidth() > 0 && decor.getHeight() > 0) {
@@ -2373,16 +2372,32 @@ public class DanmakuUIHelper {
                                 Canvas screenCanvas = new Canvas(screenBitmap);
                                 decor.draw(screenCanvas);
 
-                                // ====== 强模糊：让 UI 元素不可辨认 ======
+                                // ====== 三级降采样模糊：彻底消除 UI 轮廓 ======
                                 int w = screenBitmap.getWidth();
                                 int h = screenBitmap.getHeight();
-                                int scale = 20;  // 缩小20倍再放大 = 强模糊
-                                int sw = Math.max(1, w / scale);
-                                int sh = Math.max(1, h / scale);
-                                Bitmap small = Bitmap.createScaledBitmap(screenBitmap, sw, sh, true);
-                                Bitmap blurred = Bitmap.createScaledBitmap(small, w, h, true);
+
+                                // 第1次：缩小到 1/8
+                                int sw1 = Math.max(1, w / 8);
+                                int sh1 = Math.max(1, h / 8);
+                                Bitmap small1 = Bitmap.createScaledBitmap(screenBitmap, sw1, sh1, true);
+
+                                // 第2次：再缩小到 1/4（累计 1/32）
+                                int sw2 = Math.max(1, sw1 / 4);
+                                int sh2 = Math.max(1, sh1 / 4);
+                                Bitmap small2 = Bitmap.createScaledBitmap(small1, sw2, sh2, true);
+
+                                // 第3次：再缩小到 1/2（累计 1/64）
+                                int sw3 = Math.max(1, sw2 / 2);
+                                int sh3 = Math.max(1, sh2 / 2);
+                                Bitmap small3 = Bitmap.createScaledBitmap(small2, sw3, sh3, true);
+
+                                // 放大回原尺寸
+                                Bitmap blurred = Bitmap.createScaledBitmap(small3, w, h, true);
+
                                 screenBitmap.recycle();
-                                small.recycle();
+                                small1.recycle();
+                                small2.recycle();
+                                small3.recycle();
 
                                 liquidRoot.setBackgroundBitmap(blurred);
                             }
