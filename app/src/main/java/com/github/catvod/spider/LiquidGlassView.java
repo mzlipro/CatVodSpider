@@ -160,6 +160,7 @@ public class LiquidGlassView extends FrameLayout {
         "        float edge = 1.0 - smoothstep(0.0, max(uEdgeWidth, 1.0), abs(sdfE));\n" +
         "        glassColor = mix(glassColor, uEdgeColor, edge * uEdgeColor.a);\n" +
         "    }\n" +
+        "    glassColor.a *= uGlassAlpha;\n" +          // ← 恢复这行：整体透明度
         "    return vec4(glassColor.rgb * glassColor.a, glassColor.a);\n" +
         "}\n";
 
