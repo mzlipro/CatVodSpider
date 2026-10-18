@@ -311,7 +311,7 @@ public class DanmakuUIHelper {
                     saveBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            String text = 管理Input.getText().toString();
+                            String text = apiInput.getText().toString();
                             String[] lines = text.split("\n");
                             Set<String> newUrls = new LinkedHashSet<>();
                             for (String line : lines) {
