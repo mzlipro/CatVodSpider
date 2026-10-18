@@ -291,6 +291,7 @@ public class DanmakuUIHelper {
                     AlertDialog dialog = builder.create();
                     if (isLiquidMode1) {
                         applyRealBlur(dialog);
+                        clearDialogContainerBackgrounds(dialog);   // ← 加这行
                         if (dialog.getWindow() != null)
                             dialog.getWindow().setBackgroundDrawable(
                                     new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -455,6 +456,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode2) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -792,6 +794,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode3) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1172,6 +1175,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode4) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1364,6 +1368,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode5) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1513,6 +1518,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidMode6) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -1651,6 +1657,7 @@ public class DanmakuUIHelper {
 
                 if (isLiquidMode7) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -2075,6 +2082,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidLog) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -2508,6 +2516,7 @@ public class DanmakuUIHelper {
                     // ====== 液态模式：开启窗口模糊 + 透明背景 ======
                     if (isLiquid) {
                         applyRealBlur(dialog);
+                        clearDialogContainerBackgrounds(dialog);   // ← 加这行
                         if (dialog.getWindow() != null) {
                             dialog.getWindow().setBackgroundDrawable(
                                     new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -4016,6 +4025,7 @@ public class DanmakuUIHelper {
                 AlertDialog dialog = builder.create();
                 if (isLiquidQR) {
                     applyRealBlur(dialog);
+                    clearDialogContainerBackgrounds(dialog);   // ← 加这行
                     if (dialog.getWindow() != null)
                         dialog.getWindow().setBackgroundDrawable(
                                 new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -4749,6 +4759,7 @@ public class DanmakuUIHelper {
             // 显示对话框
             safeShowDialog(activity, dialog);
             applyRealBlur(dialog);
+            clearDialogContainerBackgrounds(dialog);   // ← 加这行
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setBackgroundDrawable(
                         new android.graphics.drawable.ColorDrawable(0x00000000));
@@ -4807,6 +4818,36 @@ public class DanmakuUIHelper {
         });
 
         return button;
+    }
+    
+    /**
+     * 清除 AlertDialog 内部容器的默认背景（消除灰色方框）
+     */
+    private static void clearDialogContainerBackgrounds(AlertDialog dialog) {
+        try {
+            if (dialog.getWindow() == null) return;
+            android.view.View decor = dialog.getWindow().getDecorView();
+            if (decor instanceof ViewGroup) {
+                clearBackgroundsRecursive((ViewGroup) decor);
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private static void clearBackgroundsRecursive(ViewGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            // 只清除容器类的背景（FrameLayout、LinearLayout、ScrollView 等）
+            // 不清除按钮、输入框等具体控件的背景
+            if (child instanceof android.widget.Button
+                    || child instanceof android.widget.EditText
+                    || child instanceof android.widget.TextView) {
+                continue;  // 跳过具体控件
+            }
+            if (child instanceof ViewGroup) {
+                child.setBackground(null);   // ← 清除容器背景
+                clearBackgroundsRecursive((ViewGroup) child);
+            }
+        }
     }
     
     // 颜色加深辅助方法
