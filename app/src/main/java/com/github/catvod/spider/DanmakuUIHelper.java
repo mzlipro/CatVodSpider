@@ -2342,6 +2342,7 @@ public class DanmakuUIHelper {
                         LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                         liquidRoot.setBlurRadius(18f);
                         liquidRoot.setDarkMode(DanmakuConfigManager.getConfig(activity).isDarkMode());  // ← 加上
+                        DanmakuSpider.log("液态玻璃渲染模式: " + liquidRoot.getRenderMode());  // ← 只加这一行
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
