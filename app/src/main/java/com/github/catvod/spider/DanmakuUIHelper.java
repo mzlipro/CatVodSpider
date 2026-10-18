@@ -281,6 +281,8 @@ public class DanmakuUIHelper {
                         liquidRoot.setGlassAlpha(DanmakuConfigManager.getConfig(activity).getLpLiquidAlpha());
                         liquidRoot.setCornerRadius(24f);
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                        mainLayout.setPadding(dpToPx(activity, 8), dpToPx(activity, 8),
+                                dpToPx(activity, 8), dpToPx(activity, 8));   // ← 缩小到 8dp
                         liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -2324,6 +2326,8 @@ public class DanmakuUIHelper {
                     HorizontalScrollView tabScroll = new HorizontalScrollView(activity);
                     tabScroll.setHorizontalScrollBarEnabled(false);
                     tabScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+                    tabScroll.setVerticalFadingEdgeEnabled(false);      // ← 加
+                    tabScroll.setHorizontalFadingEdgeEnabled(false);    // ← 加
                     tabScroll.addView(tabContainer);
                     LinearLayout.LayoutParams tabScrollParams = new LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2333,6 +2337,8 @@ public class DanmakuUIHelper {
     
                     ScrollView resultScroll = new ScrollView(activity);
                     resultScroll.setBackgroundColor((isTemplate3 || isLiquid) ? Color.TRANSPARENT : BACKGROUND_WHITE);
+                    resultScroll.setVerticalFadingEdgeEnabled(false);    // ← 加
+                    resultScroll.setHorizontalFadingEdgeEnabled(false);  // ← 加
                     LinearLayout resultContainer = new LinearLayout(activity);
                     resultContainer.setOrientation(LinearLayout.VERTICAL);
                     resultContainer.setPadding(0, 10, 0, 0);
@@ -2385,6 +2391,7 @@ public class DanmakuUIHelper {
                         }
 
                         mainLayout.setBackgroundColor(Color.TRANSPARENT);
+                        mainLayout.setPadding(0, 0, 0, 0);   // ← 加这行：去掉间隙
                         ViewGroup.LayoutParams wrapParams = new ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT);
@@ -4647,8 +4654,8 @@ public class DanmakuUIHelper {
             LinearLayout mainLayout = new LinearLayout(activity);
             mainLayout.setOrientation(LinearLayout.VERTICAL);
             mainLayout.setBackgroundColor(Color.TRANSPARENT);
-            mainLayout.setPadding(dpToPx(activity, 12), dpToPx(activity, 12),
-                    dpToPx(activity, 12), dpToPx(activity, 12));
+            mainLayout.setPadding(dpToPx(activity, 6), dpToPx(activity, 6),
+                    dpToPx(activity, 6), dpToPx(activity, 6));   // ← 缩小 padding
 
             // 标题
             TextView titleView = new TextView(activity);
@@ -4756,14 +4763,6 @@ public class DanmakuUIHelper {
             }
             cancelBtn.setOnClickListener(v -> dialog.dismiss());
 
-//验证代码测试用
-                    // ====== 彻底去掉 Dialog 所有装饰 ======
-                    if (dialog.getWindow() != null) {
-                        dialog.getWindow().setBackgroundDrawable(
-                                new android.graphics.drawable.ColorDrawable(0x00000000));
-                        dialog.getWindow().requestFeature(android.view.Window.FEATURE_NO_TITLE);
-                    }
-                    
             // 显示对话框
             safeShowDialog(activity, dialog);
             applyRealBlur(dialog);
@@ -4829,31 +4828,52 @@ public class DanmakuUIHelper {
     }
     
     /**
-     * 清除 AlertDialog 内部容器的默认背景（消除灰色方框）
+     * 清除 AlertDialog 内部容器的默认背景 + 关闭渐隐边缘（消除灰色方框）
      */
     private static void clearDialogContainerBackgrounds(AlertDialog dialog) {
         try {
             if (dialog.getWindow() == null) return;
             android.view.View decor = dialog.getWindow().getDecorView();
-            if (decor instanceof ViewGroup) {
-                clearBackgroundsRecursive((ViewGroup) decor);
-            }
+            // 延迟执行，确保视图树创建完毕
+            decor.post(() -> {
+                try {
+                    if (decor instanceof ViewGroup) {
+                        clearAllContainerVisuals((ViewGroup) decor);
+                    }
+                } catch (Throwable ignored) {}
+            });
         } catch (Throwable ignored) {}
     }
 
-    private static void clearBackgroundsRecursive(ViewGroup group) {
+    private static void clearAllContainerVisuals(ViewGroup group) {
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
-            // 只清除容器类的背景（FrameLayout、LinearLayout、ScrollView 等）
-            // 不清除按钮、输入框等具体控件的背景
+
+            // 关闭所有 ScrollView/HorizontalScrollView 的渐隐边缘（灰色方框主因）
+            if (child instanceof ScrollView) {
+                ((ScrollView) child).setVerticalFadingEdgeEnabled(false);
+                ((ScrollView) child).setHorizontalFadingEdgeEnabled(false);
+            }
+            if (child instanceof HorizontalScrollView) {
+                ((HorizontalScrollView) child).setVerticalFadingEdgeEnabled(false);
+                ((HorizontalScrollView) child).setHorizontalFadingEdgeEnabled(false);
+            }
+
+            // 跳过按钮、输入框、文字（保留它们自己的样式）
             if (child instanceof android.widget.Button
                     || child instanceof android.widget.EditText
                     || child instanceof android.widget.TextView) {
-                continue;  // 跳过具体控件
+                continue;
             }
+
+            // 清除容器类背景
             if (child instanceof ViewGroup) {
-                child.setBackground(null);   // ← 清除容器背景
-                clearBackgroundsRecursive((ViewGroup) child);
+                child.setBackground(null);
+                // 也清除前景（有些主题用前景画边框）
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    child.setForeground(null);
+                }
+                clearAllContainerVisuals((ViewGroup) child);
             }
         }
     }
