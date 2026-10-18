@@ -48,14 +48,14 @@ public class LiquidGlassView extends FrameLayout {
         "uniform float uRefractionRadiusScale;" +
         "uniform float uHighlightWidth;" +
         "uniform float uGlassAlpha;" +
-        "uniform vec4  uGlassTint;" +
+        "uniform half4 uGlassTint;" +
         "uniform float uTime;" +
         "uniform float uBreathing;" +
-        "uniform vec4  uHighlightColor;" +
+        "uniform half4 uHighlightColor;" +
         "uniform float uShimmer;" +
         "uniform float uInnerShadow;" +
         "uniform float uEdgeWidth;" +
-        "uniform vec4  uEdgeColor;" +
+        "uniform half4 uEdgeColor;" +
         "\n" +
         "const float PI = 3.14159265359;\n" +
         "\n" +
