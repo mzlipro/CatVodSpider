@@ -2358,7 +2358,19 @@ public class DanmakuUIHelper {
                                 Bitmap screenBitmap = Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), Bitmap.Config.ARGB_8888);
                                 Canvas screenCanvas = new Canvas(screenBitmap);
                                 decor.draw(screenCanvas);
-                                liquidRoot.setBackgroundBitmap(screenBitmap);
+
+                                // ====== 强模糊：让 UI 元素不可辨认 ======
+                                int w = screenBitmap.getWidth();
+                                int h = screenBitmap.getHeight();
+                                int scale = 20;  // 缩小20倍再放大 = 强模糊
+                                int sw = Math.max(1, w / scale);
+                                int sh = Math.max(1, h / scale);
+                                Bitmap small = Bitmap.createScaledBitmap(screenBitmap, sw, sh, true);
+                                Bitmap blurred = Bitmap.createScaledBitmap(small, w, h, true);
+                                screenBitmap.recycle();
+                                small.recycle();
+
+                                liquidRoot.setBackgroundBitmap(blurred);
                             }
                         } catch (Throwable t) {
                             DanmakuSpider.log("背景采样失败: " + t.getMessage());
