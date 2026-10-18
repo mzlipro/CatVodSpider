@@ -67,7 +67,6 @@ public class LiquidGlassView extends FrameLayout {
         "\n" +
         "const float PI = 3.14159265359;\n" +
         "\n" +
-        // ====== 修复1：平滑方向场，替代 sign(d) 硬跳变 ======
         "vec2 displacement(vec2 uv) {\n" +
         "    vec2 halfSize = uResolution * 0.5 - uRadius;\n" +
         "    vec2 d = uv - uResolution * 0.5;\n" +
@@ -76,26 +75,36 @@ public class LiquidGlassView extends FrameLayout {
         "    float inside = min(max(q.x, q.y), 0.0);\n" +
         "    float sdf = outside + inside;\n" +
         "    float mask = 1.0 - smoothstep(-uRadius, 0.0, sdf);\n" +
-        "    vec2 dir = d / max(length(d), 1.0);\n" +   // 连续单位方向，中心自然趋 0
+        "    vec2 dir = d / max(length(d), 1.0);\n" +
         "    return clamp(dir * mask, -1.0, 1.0);\n" +
         "}\n" +
         "\n" +
-        // ====== 修复2：左右高光平滑混合，消除 if/else 硬分支直角线 ======
+        // ====== 修复2b：高光限制在边缘过渡带内，方向场保持平滑 ======
         "float highlightFactor(vec2 uv, vec2 normal, out bool lit) {\n" +
-        "    float normalLen = length(normal);\n" +
         "    lit = false;\n" +
-        "    if (normalLen < 1.0 - uHighlightStrength) {\n" +
-        "        return 0.0;\n" +
-        "    }\n" +
+        "    if (uHighlightStrength <= 0.0) return 0.0;\n" +
+        // 计算到圆角矩形边缘的内向距离 dist（边缘=0，越往中心越大）
+        "    vec2 halfSize = uResolution * 0.5 - uRadius;\n" +
+        "    vec2 d = uv - uResolution * 0.5;\n" +
+        "    vec2 q = abs(d) - halfSize;\n" +
+        "    float sdf = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);\n" +
+        "    float dist = -sdf;\n" +
+        // 边缘带：从贴近边缘处渐亮，在进入内部前渐灭 —— 关键约束，防止内部大面积点亮
+        "    float bandMask = smoothstep(0.0, max(uRadius * 0.18, 1.0), dist)\n" +
+        "                   * (1.0 - smoothstep(uRadius * 0.35, uRadius * 0.95, dist));\n" +
+        "    if (bandMask <= 0.001) return 0.0;\n" +
         "    lit = true;\n" +
-        "    float g = normal.y * 0.5 + 0.5;\n" +
+        // 平滑方向场：右下对角 g≈0.749 亮、左上对角 g≈0.251 亮，过渡自然无直角
+        "    vec2 dir = d / max(length(d), 1.0);\n" +
+        "    float g = dir.y * 0.5 + 0.5;\n" +
         "    float span = max(uHighlightWidth, 0.001);\n" +
         "    float leftCenter  = 191.0 / 255.0;\n" +
         "    float rightCenter = 1.0 - leftCenter;\n" +
         "    float opL = clamp(1.0 - abs(g - leftCenter) / span, 0.0, 1.0);\n" +
         "    float opR = clamp(1.0 - abs(g - rightCenter) / span, 0.0, 1.0);\n" +
-        "    float side = smoothstep(-0.25, 0.25, normal.x);\n" +   // 左右平滑过渡
-        "    float opacity = mix(opR, opL, side);\n" +
+        "    float side = smoothstep(-0.35, 0.35, dir.x);\n" +
+        "    float opacity = mix(opR, opL, side) * bandMask;\n" +
+        "    opacity *= clamp(uHighlightStrength * 5.0, 0.0, 1.0);\n" +
         "    opacity *= (1.0 + uBreathing * sin(uTime * 2.0));\n" +
         "    return clamp(opacity, 0.0, 1.0);\n" +
         "}\n" +
@@ -151,7 +160,6 @@ public class LiquidGlassView extends FrameLayout {
         "        float edge = 1.0 - smoothstep(0.0, max(uEdgeWidth, 1.0), abs(sdfE));\n" +
         "        glassColor = mix(glassColor, uEdgeColor, edge * uEdgeColor.a);\n" +
         "    }\n" +
-        // ====== 修复5：删除重复的 glassColor.a *= uGlassAlpha ======
         "    return vec4(glassColor.rgb * glassColor.a, glassColor.a);\n" +
         "}\n";
 
