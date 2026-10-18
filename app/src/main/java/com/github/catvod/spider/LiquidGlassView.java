@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Outline;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.RuntimeShader;
 import android.graphics.Shader;
@@ -30,6 +31,13 @@ import java.util.List;
  *
  * 实现折射、色散、轮廓光、玻璃底色、深浅色双模式、表面光泽、内阴影、边缘描边。
  * API 33+ 使用 AGSL RuntimeShader（GPU 单 pass），低版本 Canvas 兜底。
+ *
+ * 修复记录：
+ * 1. displacement() 用平滑方向场替代 sign(d)，消除中轴硬跳变接缝；
+ * 2. highlightFactor() 左右高光平滑混合，消除直角线；
+ * 3. AGSL 路径改画圆角矩形，不依赖 clipToOutline 兜底；
+ * 4. Canvas 兜底路径背景/高光统一圆角，消除满铺直角；
+ * 5. 删除重复的 alpha 叠乘。
  */
 public class LiquidGlassView extends FrameLayout {
 
@@ -59,6 +67,7 @@ public class LiquidGlassView extends FrameLayout {
         "\n" +
         "const float PI = 3.14159265359;\n" +
         "\n" +
+        // ====== 修复1：平滑方向场，替代 sign(d) 硬跳变 ======
         "vec2 displacement(vec2 uv) {\n" +
         "    vec2 halfSize = uResolution * 0.5 - uRadius;\n" +
         "    vec2 d = uv - uResolution * 0.5;\n" +
@@ -66,10 +75,12 @@ public class LiquidGlassView extends FrameLayout {
         "    float outside = length(max(q, 0.0));\n" +
         "    float inside = min(max(q.x, q.y), 0.0);\n" +
         "    float sdf = outside + inside;\n" +
-        "    vec2 base = sign(d) * (1.0 - smoothstep(-uRadius, 0.0, sdf));\n" +
-        "    return clamp(base, -1.0, 1.0);\n" +
+        "    float mask = 1.0 - smoothstep(-uRadius, 0.0, sdf);\n" +
+        "    vec2 dir = d / max(length(d), 1.0);\n" +   // 连续单位方向，中心自然趋 0
+        "    return clamp(dir * mask, -1.0, 1.0);\n" +
         "}\n" +
         "\n" +
+        // ====== 修复2：左右高光平滑混合，消除 if/else 硬分支直角线 ======
         "float highlightFactor(vec2 uv, vec2 normal, out bool lit) {\n" +
         "    float normalLen = length(normal);\n" +
         "    lit = false;\n" +
@@ -78,15 +89,13 @@ public class LiquidGlassView extends FrameLayout {
         "    }\n" +
         "    lit = true;\n" +
         "    float g = normal.y * 0.5 + 0.5;\n" +
-        "    float span = uHighlightWidth;\n" +
+        "    float span = max(uHighlightWidth, 0.001);\n" +
         "    float leftCenter  = 191.0 / 255.0;\n" +
         "    float rightCenter = 1.0 - leftCenter;\n" +
-        "    float opacity = 0.0;\n" +
-        "    if (normal.x > 0.0) {\n" +
-        "        opacity = clamp(1.0 - abs(g - leftCenter) / span, 0.0, 1.0);\n" +
-        "    } else if (normal.x < 0.0) {\n" +
-        "        opacity = clamp(1.0 - abs(g - rightCenter) / span, 0.0, 1.0);\n" +
-        "    }\n" +
+        "    float opL = clamp(1.0 - abs(g - leftCenter) / span, 0.0, 1.0);\n" +
+        "    float opR = clamp(1.0 - abs(g - rightCenter) / span, 0.0, 1.0);\n" +
+        "    float side = smoothstep(-0.25, 0.25, normal.x);\n" +   // 左右平滑过渡
+        "    float opacity = mix(opR, opL, side);\n" +
         "    opacity *= (1.0 + uBreathing * sin(uTime * 2.0));\n" +
         "    return clamp(opacity, 0.0, 1.0);\n" +
         "}\n" +
@@ -142,7 +151,7 @@ public class LiquidGlassView extends FrameLayout {
         "        float edge = 1.0 - smoothstep(0.0, max(uEdgeWidth, 1.0), abs(sdfE));\n" +
         "        glassColor = mix(glassColor, uEdgeColor, edge * uEdgeColor.a);\n" +
         "    }\n" +
-        "    glassColor.a *= uGlassAlpha;\n" +
+        // ====== 修复5：删除重复的 glassColor.a *= uGlassAlpha ======
         "    return vec4(glassColor.rgb * glassColor.a, glassColor.a);\n" +
         "}\n";
 
@@ -184,6 +193,7 @@ public class LiquidGlassView extends FrameLayout {
     private final Paint mShimmerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mRipplePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mShaderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);   // ← 新增：兜底背景画笔
 
     private RuntimeShader mGlassShader;
     private RuntimeShader mFlatBgShader;
@@ -199,7 +209,6 @@ public class LiquidGlassView extends FrameLayout {
         init();
     }
 
-    
     private void init() {
         setWillNotDraw(false);
         setClipChildren(false);
@@ -239,6 +248,7 @@ public class LiquidGlassView extends FrameLayout {
         super.onSizeChanged(w, h, oldw, oldh);
         mGlassInset = Math.min(w, h) * 0.06f;
         mDirtySampling = true;
+        invalidateOutline();   // ← 修复3：尺寸变化后强制刷新圆角 outline
     }
 
     @Override
@@ -256,7 +266,7 @@ public class LiquidGlassView extends FrameLayout {
             drawRipples(canvas);
         } catch (Throwable t) {
             Log.e(TAG, "绘制失败，兜底纯色: " + t.getMessage());
-            DanmakuSpider.log("LiquidGlassView 绘制异常: " + t.getMessage());  // ← 加这行
+            DanmakuSpider.log("LiquidGlassView 绘制异常: " + t.getMessage());
             canvas.drawColor(mDarkMode ? 0xCC1A1A2E : 0xB3FFFFFF);
         }
 
@@ -317,7 +327,9 @@ public class LiquidGlassView extends FrameLayout {
         }
 
         mShaderPaint.setShader(mGlassShader);
-        canvas.drawRect(0, 0, w, h, mShaderPaint);
+        // ====== 修复3：改画圆角矩形，即使 clipToOutline 失效也不露直角 ======
+        float r = dp(mCornerRadius);
+        canvas.drawRoundRect(0, 0, w, h, r, r, mShaderPaint);
     }
 
     private Shader getBackgroundShader(int w, int h) {
@@ -345,7 +357,7 @@ public class LiquidGlassView extends FrameLayout {
         float rx = dp(mCornerRadius);
         float ry = dp(mCornerRadius);
 
-        drawBlurredBackground(canvas, w, h);
+        drawBlurredBackground(canvas, rect, rx, ry);   // ← 修复4：传入圆角矩形
 
         mTintPaint.setColor(mDarkMode ? 0xFF1A1A2E : mTintColor);
         mTintPaint.setAlpha((int) (mGlassAlpha * 255));
@@ -362,8 +374,10 @@ public class LiquidGlassView extends FrameLayout {
         drawInnerShadow(canvas, rect, rx, ry);
     }
 
-    private void drawBlurredBackground(Canvas canvas, int w, int h) {
-        canvas.drawColor(mDarkMode ? 0xCC0D0D1A : 0xCCB0BEC5);
+    // ====== 修复4：背景不再 drawColor 满铺，改画圆角矩形，消除直角硬边界 ======
+    private void drawBlurredBackground(Canvas canvas, RectF rect, float rx, float ry) {
+        mBgPaint.setColor(mDarkMode ? 0xCC0D0D1A : 0xCCB0BEC5);
+        canvas.drawRoundRect(rect, rx, ry, mBgPaint);
     }
 
     private void drawRefractionGradient(Canvas canvas, RectF rect, float rx, float ry) {
@@ -397,14 +411,25 @@ public class LiquidGlassView extends FrameLayout {
         canvas.drawRoundRect(bRect, rx, ry, blue);
     }
 
+    // ====== 修复4：顶部高光改为顶部圆角条带 Path，去掉 dp(6) 近直角小框 ======
     private void drawTopHighlight(Canvas canvas, RectF rect) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(dp(2));
         p.setColor(mDarkMode ? 0x6600E5FF : 0xAAFFFFFF);
-        RectF topArc = new RectF(rect.left + dp(4), rect.top + dp(1),
-                rect.right - dp(4), rect.top + dp(8));
-        canvas.drawRoundRect(topArc, dp(6), dp(6), p);
+
+        float rx = dp(mCornerRadius);
+        float inset = dp(2);
+        Path path = new Path();
+        // 顶部一条带圆角的弧线：左上圆角 → 顶边 → 右上圆角
+        path.moveTo(rect.left + rx, rect.top + inset);
+        path.lineTo(rect.right - rx, rect.top + inset);
+        path.arcTo(new RectF(rect.right - rx * 2, rect.top + inset,
+                rect.right, rect.top + inset + rx * 2), 270, 90, false);
+        path.moveTo(rect.left + rx, rect.top + inset);
+        path.arcTo(new RectF(rect.left, rect.top + inset,
+                rect.left + rx * 2, rect.top + inset + rx * 2), 180, 90, false);
+        canvas.drawPath(path, p);
     }
 
     private void drawInnerShadow(Canvas canvas, RectF rect, float rx, float ry) {
@@ -548,7 +573,7 @@ public class LiquidGlassView extends FrameLayout {
     public boolean isAgslAvailable() {
         return mAgslAvailable;
     }
-    
+
     /** 深色模式开关 */
     public void setDarkMode(boolean dark) {
         mDarkMode = dark;
