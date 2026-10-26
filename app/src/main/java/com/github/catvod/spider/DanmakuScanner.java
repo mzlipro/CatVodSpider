@@ -2518,7 +2518,7 @@ public class DanmakuScanner {
             optionsList.add("✨ 弹幕配置");
             optionsList.add("🗂 缓存管理");
             optionsList.add("🎨 布局配置");
-            optionsList.add("🧩 主题模式");
+            optionsList.add("💠 主题模式");
             optionsList.add("⏱ 弹幕时间偏移");
             optionsList.add("📝 查看日志");
 
