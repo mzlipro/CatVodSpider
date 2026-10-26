@@ -4673,18 +4673,6 @@ resultAdapter.showMessage("未找到结果");
                 rebindEpisodeButton(btn, row.item);
             }
 
-            // grid 模式：外层包 GridLayout 让一行多个
-            if (isGrid) {
-                GridLayout grid = (GridLayout) ((itemWrapper.getParent() instanceof GridLayout)
-                        ? itemWrapper.getParent() : null);
-                // 简化：直接在 wrapper 里横排，用 weight 实现等宽
-                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) itemWrapper.getLayoutParams();
-                if (lp == null || lp.width != 0) {
-                    lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    lp.weight = 1;
-                    itemWrapper.setLayoutParams(lp);
-                }
-            }
             return itemWrapper;
         }
 
