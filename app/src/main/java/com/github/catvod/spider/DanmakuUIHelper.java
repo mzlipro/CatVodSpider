@@ -4460,27 +4460,27 @@ resultAdapter.showMessage("未找到结果");
         return button;
     }
     
-    // ====================== ListView 版：结果区虚拟化 ======================
+    // ====================== ListView 版：一行多列 + 视图回收 ======================
 
     private static class ResultRow {
         static final int TYPE_HEADER = 0;
-        static final int TYPE_EPISODE = 1;
+        static final int TYPE_GRID_ROW = 1;
         static final int TYPE_MESSAGE = 2;
 
         final int type;
         final String groupTitle;
         final List<DanmakuItem> groupItems;
         boolean expanded;
-        final DanmakuItem item;
+        final List<DanmakuItem> rowItems;   // 一行多个集数
         final String message;
 
         private ResultRow(int type, String groupTitle, List<DanmakuItem> groupItems,
-                          boolean expanded, DanmakuItem item, String message) {
+                          boolean expanded, List<DanmakuItem> rowItems, String message) {
             this.type = type;
             this.groupTitle = groupTitle;
             this.groupItems = groupItems;
             this.expanded = expanded;
-            this.item = item;
+            this.rowItems = rowItems;
             this.message = message;
         }
 
@@ -4488,8 +4488,8 @@ resultAdapter.showMessage("未找到结果");
             return new ResultRow(TYPE_HEADER, title, items, expanded, null, null);
         }
 
-        static ResultRow episode(DanmakuItem item) {
-            return new ResultRow(TYPE_EPISODE, null, null, false, item, null);
+        static ResultRow gridRow(List<DanmakuItem> items) {
+            return new ResultRow(TYPE_GRID_ROW, null, null, false, items, null);
         }
 
         static ResultRow message(String msg) {
@@ -4501,12 +4501,8 @@ resultAdapter.showMessage("未找到结果");
         private final Activity activity;
         private final List<ResultRow> rows = new ArrayList<>();
         private AlertDialog dialog;
-        private int gridColumns = 3;
+        private int gridColumns = 1;
         private boolean isTemplate3, isMultiGrid, isLiquid, isGrid;
-
-        static final int VIEW_TYPE_HEADER = 0;
-        static final int VIEW_TYPE_EPISODE = 1;
-        static final int VIEW_TYPE_MESSAGE = 2;
 
         ResultListAdapter(Activity activity) {
             this.activity = activity;
@@ -4539,142 +4535,176 @@ resultAdapter.showMessage("未找到结果");
                 String title = e.getKey();
                 List<DanmakuItem> groupItems = e.getValue();
                 boolean expanded = autoExpandKeys != null && autoExpandKeys.contains(title);
+
                 if (!isGrid && groupItems.size() == 1) {
-                    rows.add(ResultRow.episode(groupItems.get(0)));
+                    rows.add(ResultRow.gridRow(new ArrayList<>(groupItems)));
                     continue;
                 }
                 rows.add(ResultRow.header(title, groupItems, expanded));
                 if (expanded) {
-                    for (DanmakuItem it : groupItems) rows.add(ResultRow.episode(it));
+                    addGridRows(groupItems);
                 }
             }
             notifyDataSetChanged();
+        }
+
+        /** 把一组集数按 gridColumns 切成多行 */
+        private void addGridRows(List<DanmakuItem> items) {
+            for (int i = 0; i < items.size(); i += gridColumns) {
+                rows.add(ResultRow.gridRow(new ArrayList<>(items.subList(
+                        i, Math.min(i + gridColumns, items.size())))));
+            }
         }
 
         int findPositionByUrl(String url) {
             if (TextUtils.isEmpty(url)) return -1;
             for (int i = 0; i < rows.size(); i++) {
                 ResultRow r = rows.get(i);
-                if (r.type == ResultRow.TYPE_EPISODE && r.item != null
-                        && url.equals(r.item.getDanmakuUrl())) return i;
+                if (r.type == ResultRow.TYPE_GRID_ROW && r.rowItems != null) {
+                    for (DanmakuItem item : r.rowItems) {
+                        if (url.equals(item.getDanmakuUrl())) return i;
+                    }
+                }
             }
             for (int i = 0; i < rows.size(); i++) {
                 ResultRow r = rows.get(i);
                 if (r.type == ResultRow.TYPE_HEADER) {
-                    for (DanmakuItem it : r.groupItems) {
-                        if (url.equals(it.getDanmakuUrl())) return i;
+                    for (DanmakuItem item : r.groupItems) {
+                        if (url.equals(item.getDanmakuUrl())) return i;
                     }
                 }
             }
             return -1;
         }
 
-        @Override
-        public int getCount() {
-            return rows.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return rows.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return rows.get(position).type;
-        }
-
-        @Override
-        public int getViewTypeCount() {
-            return 3;
-        }
-
-        @Override
-        public boolean areAllItemsEnabled() {
-            return false;
-        }
-
-        @Override
-        public boolean isEnabled(int position) {
+        @Override public int getCount() { return rows.size(); }
+        @Override public Object getItem(int position) { return rows.get(position); }
+        @Override public long getItemId(int position) { return position; }
+        @Override public int getItemViewType(int position) { return rows.get(position).type; }
+        @Override public int getViewTypeCount() { return 3; }
+        @Override public boolean areAllItemsEnabled() { return false; }
+        @Override public boolean isEnabled(int position) {
             return rows.get(position).type == ResultRow.TYPE_HEADER;
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             ResultRow row = rows.get(position);
-
-            if (row.type == ResultRow.TYPE_MESSAGE) {
-                TextView tv = (convertView instanceof TextView) ? (TextView) convertView : new TextView(activity);
-                tv.setText(row.message);
-                tv.setGravity(Gravity.CENTER);
-                tv.setPadding(0, dpToPx(activity, 50), 0, dpToPx(activity, 50));
-                tv.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
-                return tv;
-            }
-
-            if (row.type == ResultRow.TYPE_HEADER) {
-                LinearLayout wrapper = null;
-                if (convertView instanceof LinearLayout
-                        && ((LinearLayout) convertView).getChildCount() == 1
-                        && ((LinearLayout) convertView).getChildAt(0) instanceof Button) {
-                    wrapper = (LinearLayout) convertView;
-                }
-                Button header;
-                if (wrapper == null) {
-                    wrapper = new LinearLayout(activity);
-                    wrapper.setOrientation(LinearLayout.VERTICAL);
-                    wrapper.setFocusable(false);
-                    wrapper.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-                    header = new Button(activity);
-                    header.setGravity(Gravity.CENTER);
-                    header.setTextSize(14);
-                    header.setTypeface(null, android.graphics.Typeface.BOLD);
-                    header.setAllCaps(false);
-                    header.setFocusable(true);
-                    header.setClickable(true);
-                    wrapper.addView(header, new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                } else {
-                    header = (Button) wrapper.getChildAt(0);
-                }
-
-                header.setText(buildGroupHeaderTitle(row.groupTitle, row.groupItems.size(), row.expanded));
-                applyGroupHeaderStyle(header, row.expanded, isTemplate3, isLiquid, false);
-                header.setOnFocusChangeListener((v, hasFocus) -> {
-                    if (hasFocus) sUserInteracted = true;
-                    applyGroupHeaderStyle((Button) v, row.expanded, isTemplate3, isLiquid, hasFocus);
-                });
-                header.setOnClickListener(v -> toggleGroup(row));
-                return wrapper;
-            }
-
-            // TYPE_EPISODE
-            LinearLayout itemWrapper = null;
-            if (convertView instanceof LinearLayout
-                    && ((LinearLayout) convertView).getChildCount() == 1) {
-                itemWrapper = (LinearLayout) convertView;
-            }
-            Button btn;
-            if (itemWrapper == null) {
-                itemWrapper = new LinearLayout(activity);
-                itemWrapper.setOrientation(LinearLayout.VERTICAL);
-                itemWrapper.setFocusable(false);
-                itemWrapper.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-                btn = createEpisodeButton(row.item);
-                itemWrapper.addView(btn, new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            } else {
-                btn = (Button) itemWrapper.getChildAt(0);
-                rebindEpisodeButton(btn, row.item);
-            }
-
-            return itemWrapper;
+            if (row.type == ResultRow.TYPE_MESSAGE) return getMessageView(row, convertView);
+            if (row.type == ResultRow.TYPE_HEADER) return getHeaderView(row, convertView);
+            return getGridRowView(row, convertView);
         }
+
+        // ---- 消息行 ----
+        private View getMessageView(ResultRow row, View convertView) {
+            TextView tv = (convertView instanceof TextView) ? (TextView) convertView : new TextView(activity);
+            tv.setText(row.message);
+            tv.setGravity(Gravity.CENTER);
+            tv.setPadding(0, dpToPx(activity, 50), 0, dpToPx(activity, 50));
+            tv.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
+            return tv;
+        }
+
+        // ---- 分组头（整行一个按钮） ----
+        private View getHeaderView(ResultRow row, View convertView) {
+            LinearLayout wrapper;
+            Button header;
+            if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 1
+                    && ((LinearLayout) convertView).getChildAt(0) instanceof Button) {
+                wrapper = (LinearLayout) convertView;
+                header = (Button) wrapper.getChildAt(0);
+            } else {
+                wrapper = new LinearLayout(activity);
+                wrapper.setOrientation(LinearLayout.VERTICAL);
+                wrapper.setFocusable(false);
+                header = new Button(activity);
+                header.setGravity(Gravity.CENTER);
+                header.setTextSize(14);
+                header.setTypeface(null, android.graphics.Typeface.BOLD);
+                header.setAllCaps(false);
+                header.setFocusable(true);
+                header.setClickable(true);
+                wrapper.addView(header, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+
+            header.setText(buildGroupHeaderTitle(row.groupTitle, row.groupItems.size(), row.expanded));
+            applyGroupHeaderStyle(header, row.expanded, isTemplate3, isLiquid, false);
+            header.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) sUserInteracted = true;
+                applyGroupHeaderStyle((Button) v, row.expanded, isTemplate3, isLiquid, hasFocus);
+            });
+            header.setOnClickListener(v -> toggleGroup(row));
+            return wrapper;
+        }
+
+        // ---- 集数行（一行 gridColumns 个按钮） ----
+        private View getGridRowView(ResultRow row, View convertView) {
+            LinearLayout rowLayout;
+            if (convertView instanceof LinearLayout
+                    && ((LinearLayout) convertView).getOrientation() == LinearLayout.HORIZONTAL) {
+                rowLayout = (LinearLayout) convertView;
+                rowLayout.removeAllViews();
+            } else {
+                rowLayout = new LinearLayout(activity);
+                rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+                rowLayout.setFocusable(false);
+                rowLayout.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            }
+
+            for (DanmakuItem item : row.rowItems) {
+                Button btn = createEpisodeButton(item);
+                // 宽度用 weight=1 实现等分（列表模式 gridColumns=1 时也是满宽）
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+                int m = dpToPx(activity, 4);
+                lp.setMargins(m, m, m, m);
+                btn.setLayoutParams(lp);
+                rowLayout.addView(btn);
+            }
+            return rowLayout;
+        }
+
+        // ---- 用工厂方法创建集数按钮 ----
+        private Button createEpisodeButton(DanmakuItem item) {
+            Button btn;
+            if (isLiquid) {
+                btn = createLiquidGridResultButton(activity, item, dialog);
+            } else if (isMultiGrid) {
+                btn = createMultiGridResultButton(activity, item, dialog);
+            } else if (isTemplate3 && isGrid) {
+                btn = createDarkGridResultButton(activity, item, dialog);
+            } else if (isGrid) {
+                btn = createGridResultButton(activity, item, dialog);
+            } else {
+                btn = createResultButton(activity, item, dialog, isTemplate3, null, null);
+            }
+            return btn;
+        }
+
+        // ---- 展开/收起分组 ----
+        private void toggleGroup(ResultRow row) {
+            int idx = rows.indexOf(row);
+            if (idx < 0) return;
+            row.expanded = !row.expanded;
+            if (row.expanded) {
+                List<ResultRow> add = new ArrayList<>();
+                for (int i = 0; i < row.groupItems.size(); i += gridColumns) {
+                    add.add(ResultRow.gridRow(new ArrayList<>(row.groupItems.subList(
+                            i, Math.min(i + gridColumns, row.groupItems.size())))));
+                }
+                rows.addAll(idx + 1, add);
+            } else {
+                int removeCount = 0;
+                for (int i = idx + 1; i < rows.size(); i++) {
+                    if (rows.get(i).type == ResultRow.TYPE_GRID_ROW) removeCount++;
+                    else break;
+                }
+                if (removeCount > 0) rows.subList(idx + 1, idx + 1 + removeCount).clear();
+            }
+            notifyDataSetChanged();
+        }
+    }
 
         private Button createEpisodeButton(DanmakuItem item) {
             Button btn;
