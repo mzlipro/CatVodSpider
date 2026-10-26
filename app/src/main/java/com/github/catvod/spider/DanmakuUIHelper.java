@@ -3206,28 +3206,19 @@ public class DanmakuUIHelper {
                 groupBtn.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        // 点击时更新选中状态
+                        // 点击时更新选中状态（改动3.3：直接用闭包 animeTitle，不反查）
                         for (java.util.Map.Entry<String, Button> entry : groupButtons.entrySet()) {
                             applyGroupHeaderStyle(entry.getValue(), entry.getValue() == v, isTemplate3, isLiquid, false);
                         }
                         groupsWithLastUrl.clear();
                         groupsWithLastUrl.add(animeTitle);
-                            Button otherBtn = entry.getValue();
-                            if (otherBtn == v) {
-                                applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
-                                groupsWithLastUrl.clear();
-                                groupsWithLastUrl.add(entry.getKey());
-                            } else {
-                                applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
-                            }
-                        }
 
                         Object[] currentStateInfo = (Object[]) groupBtn.getTag();
                         boolean isExpanded = (Integer) currentStateInfo[0] == 1;
                         GridLayout gridContainer = (GridLayout) currentStateInfo[2];
 
                         if (isExpanded) {
-                            // 收起内容（先把焦点交还组头，避免焦点所在的 View 被移除后焦点乱跑）
+                            // 收起内容（改动5：焦点先交还组头，避免焦点所在View被移除）
                             int groupBtnIndex = resultContainer.indexOfChild(groupBtn);
                             if (groupBtnIndex + 1 < resultContainer.getChildCount()) {
                                 View toRemove = resultContainer.getChildAt(groupBtnIndex + 1);
@@ -3237,9 +3228,9 @@ public class DanmakuUIHelper {
                                 resultContainer.removeViewAt(groupBtnIndex + 1);
                             }
 
-                            currentStateInfo[0] = 0; // 未展开
-                            currentStateInfo[1] = 0; // 子项数量
-                            currentStateInfo[2] = null; // 清空网格容器引用
+                            currentStateInfo[0] = 0;
+                            currentStateInfo[1] = 0;
+                            currentStateInfo[2] = null;
                             groupBtn.setText(buildGroupHeaderTitle(animeTitle, animeItems.size(), false));
                         } else {
                             // 展开内容 - 创建网格布局
@@ -3247,15 +3238,13 @@ public class DanmakuUIHelper {
 
                             sortResults(animeItems, isReversed);
 
-                            // 创建网格布局容器
                             GridLayout gridLayout = new GridLayout(activity);
-                            // 根据屏幕宽度动态计算列数
                             DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
                             int screenWidthPx = displayMetrics.widthPixels;
                             int screenWidthDp = (int) (screenWidthPx / displayMetrics.density);
-                            int columns = (isMultiGrid || isLiquid) ? 3 : Math.max(3, screenWidthDp / 120); // 多格-液态模式固定3列
+                            int columns = (isMultiGrid || isLiquid) ? 3 : Math.max(3, screenWidthDp / 120);
                             gridLayout.setColumnCount(columns);
-                            gridLayout.setRowCount(GridLayout.UNDEFINED); // 行数自动计算
+                            gridLayout.setRowCount(GridLayout.UNDEFINED);
                             gridLayout.setUseDefaultMargins(false);
                             gridLayout.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 8));
                             gridLayout.setBackgroundColor(Color.TRANSPARENT);
@@ -3264,13 +3253,12 @@ public class DanmakuUIHelper {
                             gridParams.setMargins(0, 0, 0, 0);
                             gridLayout.setLayoutParams(gridParams);
 
-                            // 为每个剧集创建网格按钮
                             for (DanmakuItem item : animeItems) {
                                 Button gridItem;
                                 if (isLiquid) {
-                                    gridItem = createLiquidGridResultButton(activity, item, dialog);  // ← 新增液态专用
+                                    gridItem = createLiquidGridResultButton(activity, item, dialog);
                                 } else if (isMultiGrid) {
-                                    gridItem = createMultiGridResultButton(activity, item, dialog);  //多格专用
+                                    gridItem = createMultiGridResultButton(activity, item, dialog);
                                 } else if (isTemplate3) {
                                     gridItem = createDarkGridResultButton(activity, item, dialog);
                                 } else {
@@ -3278,12 +3266,11 @@ public class DanmakuUIHelper {
                                 }
                                 gridLayout.addView(gridItem);
                             }
-                            // 将网格布局添加到分组按钮后面
                             resultContainer.addView(gridLayout, groupBtnIndex + 1);
 
-                            currentStateInfo[0] = 1; // 已展开
-                            currentStateInfo[1] = animeItems.size(); // 子项数量
-                            currentStateInfo[2] = gridLayout; // 保存网格容器引用
+                            currentStateInfo[0] = 1;
+                            currentStateInfo[1] = animeItems.size();
+                            currentStateInfo[2] = gridLayout;
                             groupBtn.setText(buildGroupHeaderTitle(animeTitle, animeItems.size(), true));
                         }
                         groupBtn.setTag(currentStateInfo);
@@ -3386,20 +3373,12 @@ public class DanmakuUIHelper {
                                 highlightedDanmakuUrl[0] = "";
                                 refreshResultButtonStyles(resultButtons, highlightedDanmakuUrl[0], isTemplate3);
                             }
+                            // 改动3.3：直接用闭包 animeTitle，不反查
                             for (java.util.Map.Entry<String, Button> entry : groupButtons.entrySet()) {
                                 applyGroupHeaderStyle(entry.getValue(), entry.getValue() == v, isTemplate3, isLiquid, false);
                             }
                             groupsWithLastUrl.clear();
                             groupsWithLastUrl.add(animeTitle);
-                                Button otherBtn = entry.getValue();
-                                if (otherBtn == v) {
-                                    applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
-                                    groupsWithLastUrl.clear();
-                                    groupsWithLastUrl.add(entry.getKey());
-                                } else {
-                                    applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
-                                }
-                            }
 
                             Object[] currentStateInfo = (Object[]) groupBtn.getTag();
                             boolean isExpanded = (Integer) currentStateInfo[0] == 1;
@@ -3408,7 +3387,7 @@ public class DanmakuUIHelper {
                                 View childContainer = (View) currentStateInfo[1];
                                 if (childContainer != null) {
                                     if (childContainer.hasFocus()) {
-                                        groupBtn.requestFocus();   // ← 焦点先安全落到组头
+                                        groupBtn.requestFocus();   // 改动5：焦点先安全落到组头
                                     }
                                     resultContainer.removeView(childContainer);
                                 }
