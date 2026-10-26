@@ -2326,6 +2326,7 @@ public class DanmakuUIHelper {
                     mainLayout.addView(tabScroll);
     
                     ScrollView resultScroll = new ScrollView(activity);
+                    resultScroll.setLayerType(View.LAYER_TYPE_SOFTWARE, null);   // ← 加这行
                     resultScroll.setBackgroundColor((isTemplate3 || isLiquid) ? Color.TRANSPARENT : BACKGROUND_WHITE);
                     LinearLayout resultContainer = new LinearLayout(activity);
                     resultContainer.setOrientation(LinearLayout.VERTICAL);
