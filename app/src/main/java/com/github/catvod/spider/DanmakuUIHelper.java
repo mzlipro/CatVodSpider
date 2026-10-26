@@ -42,10 +42,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import android.widget.FrameLayout;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 public class DanmakuUIHelper {
 
     // 是否强制所有弹窗使用液态玻璃效果（true=始终启用，false=跟随主题模式）
@@ -2329,41 +2325,24 @@ public class DanmakuUIHelper {
                     tabScroll.setLayoutParams(tabScrollParams);
                     mainLayout.addView(tabScroll);
     
-                    // ====== 方案B：结果区 RecyclerView 虚拟化 ======
-                    RecyclerView resultRecycler = new RecyclerView(activity);
-                    resultRecycler.setBackgroundColor((isTemplate3 || isLiquid) ? Color.TRANSPARENT : BACKGROUND_WHITE);
-                    resultRecycler.setClipToPadding(false);
-                    resultRecycler.setPadding(0, dpToPx(activity, 10), 0, 0);
-                    resultRecycler.setHasFixedSize(false);
-                    resultRecycler.setItemAnimator(null);                        // 关动画，防焦点闪烁
-                    resultRecycler.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-                    resultRecycler.setLayerType(View.LAYER_TYPE_SOFTWARE, null); // 兜底 GPU 纹理上限
+                    // ====== 结果区 ScrollView（纯SDK + 软件渲染层，规避 GPU 纹理上限）======
+                    ScrollView resultScroll = new ScrollView(activity);
+                    resultScroll.setBackgroundColor((isTemplate3 || isLiquid) ? Color.TRANSPARENT : BACKGROUND_WHITE);
+                    resultScroll.setClipToPadding(false);
+                    resultScroll.setPadding(0, dpToPx(activity, 10), 0, 0);
+                    resultScroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+                    resultScroll.setLayerType(View.LAYER_TYPE_SOFTWARE, null);   // ← 关键：修大集数焦点丢失
 
-                    final ResultAdapter resultAdapter = new ResultAdapter(activity);
-                    DanmakuConfig rcCfg = DanmakuConfigManager.getConfig(activity);
-                    boolean rcMulti = rcCfg.isMultiGridDanmakuStyle();
-                    boolean rcLiquid = rcCfg.isLiquidDanmakuStyle();
-                    boolean rcGrid = rcCfg.isGridDanmakuStyle() || rcMulti || rcLiquid;
-                    DisplayMetrics rdm = activity.getResources().getDisplayMetrics();
-                    final int spanCount = !rcGrid ? 1
-                            : (rcMulti || rcLiquid ? 3
-                                    : Math.max(3, (int) (rdm.widthPixels / rdm.density) / 120));
-                    GridLayoutManager glm = new GridLayoutManager(activity, spanCount);
-                    glm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-                        @Override
-                        public int getSpanSize(int position) {
-                            int t = resultAdapter.getItemViewType(position);
-                            return (t == ResultRow.TYPE_HEADER || t == ResultRow.TYPE_MESSAGE) ? spanCount : 1;
-                        }
-                    });
-                    resultRecycler.setLayoutManager(glm);
-                    resultRecycler.setAdapter(resultAdapter);
+                    LinearLayout resultContainer = new LinearLayout(activity);
+                    resultContainer.setOrientation(LinearLayout.VERTICAL);
+                    resultContainer.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+                    resultScroll.addView(resultContainer);
 
                     LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, 0);
                     scrollParams.weight = 1;
-                    resultRecycler.setLayoutParams(scrollParams);
-                    mainLayout.addView(resultRecycler);
+                    resultScroll.setLayoutParams(scrollParams);
+                    mainLayout.addView(resultScroll);
     
                     // ====== 所有子 View 添加完毕后，才决定用什么容器 setView ======
                         // 真液态玻璃模式
@@ -2393,7 +2372,6 @@ public class DanmakuUIHelper {
                     }
 
                     final AlertDialog dialog = builder.create();
-                    resultAdapter.bindDialog(dialog);   // 结果按钮点击时要 dismiss 这个对话框
     
                     if (isTemplate3) {
                         dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
@@ -2414,7 +2392,7 @@ public class DanmakuUIHelper {
                             reverseBtn.setBackground(createRoundedBackgroundDrawable(isReversed ? ACCENT_COLOR : TERTIARY_LIGHT));
                         }
                             reverseBtn.setText(isReversed ? "倒序" : "升序");
-                            showResultsForTab(resultRecycler, currentItems, activity, dialog);
+                            showResultsForTab(resultContainer, currentItems, activity, dialog);
                         }
                     });
     
@@ -2437,9 +2415,15 @@ public class DanmakuUIHelper {
                                 DanmakuSpider.log("已清空搜索缓存: " + cacheKey);
                             }
     
-                            resultAdapter.showMessage("正在搜索: " + keyword);
+                            resultContainer.removeAllViews();
                             tabContainer.removeAllViews();
                             tabContainer.setVisibility(View.GONE);
+                            TextView loading = new TextView(activity);
+                            loading.setText("正在搜索: " + keyword);
+                            loading.setGravity(Gravity.CENTER);
+                            loading.setPadding(0, 20, 0, 20);
+                            loading.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
+                            resultContainer.addView(loading);
     
                             new Thread(new Runnable() {
                                 @Override
@@ -2464,7 +2448,13 @@ public class DanmakuUIHelper {
 
                                             if (results.isEmpty()) {
                                                 tabContainer.setVisibility(View.GONE);
-                                                resultAdapter.showMessage("未找到结果");
+                                                resultContainer.removeAllViews();
+                                                TextView empty = new TextView(activity);
+                                                empty.setText("未找到结果");
+                                                empty.setGravity(Gravity.CENTER);
+                                                empty.setPadding(0, 50, 0, 50);
+                                                empty.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
+                                                resultContainer.addView(empty);
                                                 return;
                                             }
     
@@ -2483,10 +2473,10 @@ public class DanmakuUIHelper {
 
                                                                                         if (isModernPanel) {
                                                 int selectedTabIndex = findInitialSearchTabIndex(tabs, groupedResults);
-                                                renderSearchSourceSelector(tabContainer, resultRecycler, groupedResults, tabs,
+                                                renderSearchSourceSelector(tabContainer, resultContainer, groupedResults, tabs,
                                                         selectedTabIndex, activity, dialog, isTemplate3);
                                             } else {
-                                                renderLegacySearchSourceTabs(tabContainer, resultRecycler, groupedResults, tabs,
+                                                renderLegacySearchSourceTabs(tabContainer, resultContainer, groupedResults, tabs,
                                                         activity, dialog, isTemplate3);
                                             }
                                         }          // ← 1. 关 Handler.post 的 run()
@@ -2562,7 +2552,7 @@ public class DanmakuUIHelper {
     }
 
     private static void renderLegacySearchSourceTabs(LinearLayout tabContainer,
-                                                     RecyclerView resultRecycler,
+                                                     LinearLayout resultContainer,
                                                      java.util.Map<String, List<DanmakuItem>> groupedResults,
                                                      List<String> tabs,
                                                      Activity activity,
@@ -2571,8 +2561,7 @@ public class DanmakuUIHelper {
         tabContainer.removeAllViews();
         if (tabs == null || tabs.isEmpty()) {
             tabContainer.setVisibility(View.GONE);
-            ResultAdapter adapter = (ResultAdapter) resultRecycler.getAdapter();
-            if (adapter != null) adapter.showMessage("该来源下无结果");
+            showResultsForTab(resultContainer, new ArrayList<>(), activity, dialog);
             return;
         }
 
@@ -2639,7 +2628,7 @@ public class DanmakuUIHelper {
                     for (int j = 0; j < tabContainer.getChildCount(); j++) {
                         updateLegacySourceTabState((Button) tabContainer.getChildAt(j), j == tabIndex, isTemplate3);
                     }
-                    showResultsForTab(resultRecycler, groupedResults.get(tabName), activity, dialog);
+                    showResultsForTab(resultContainer, groupedResults.get(tabName), activity, dialog);
                 }
             });
 
@@ -2647,7 +2636,7 @@ public class DanmakuUIHelper {
             updateLegacySourceTabState(tabBtn, i == selectedIndex, isTemplate3);
         }
 
-        showResultsForTab(resultRecycler, groupedResults.get(tabs.get(selectedIndex)), activity, dialog);
+        showResultsForTab(resultContainer, groupedResults.get(tabs.get(selectedIndex)), activity, dialog);
     }
 
     private static void updateLegacySourceTabState(Button button, boolean isActive, boolean isTemplate3) {
@@ -2685,7 +2674,7 @@ public class DanmakuUIHelper {
     }
 
     private static void renderSearchSourceSelector(LinearLayout tabContainer,
-                                                   RecyclerView resultRecycler,
+                                                   LinearLayout resultContainer,
                                                    java.util.Map<String, List<DanmakuItem>> groupedResults,
                                                    List<String> tabs,
                                                    int selectedIndex,
@@ -2695,26 +2684,25 @@ public class DanmakuUIHelper {
         tabContainer.removeAllViews();
         if (tabs == null || tabs.isEmpty()) {
             tabContainer.setVisibility(View.GONE);
-            ResultAdapter adapter = (ResultAdapter) resultRecycler.getAdapter();
-            if (adapter != null) adapter.showMessage("该来源下无结果");
+            showResultsForTab(resultContainer, new ArrayList<>(), activity, dialog);
             return;
         }
 
         int selected = Math.max(0, Math.min(selectedIndex, tabs.size() - 1));
         if (tabs.size() == 1) {
             tabContainer.setVisibility(View.GONE);
-            showResultsForTab(resultRecycler, groupedResults.get(tabs.get(selected)), activity, dialog);
+            showResultsForTab(resultContainer, groupedResults.get(tabs.get(selected)), activity, dialog);
             return;
         }
 
         tabContainer.setVisibility(View.VISIBLE);
         if (shouldUseSimpleSearchTabs(tabs, groupedResults)) {
             updateSearchSourceContainerHeight(tabContainer, activity, 48);
-            renderSearchSourceTabs(tabContainer, resultRecycler, groupedResults, tabs,
+            renderSearchSourceTabs(tabContainer, resultContainer, groupedResults, tabs,
                     selected, activity, dialog, isTemplate3);
         } else {
             updateSearchSourceContainerHeight(tabContainer, activity, 48);
-            renderSearchSourcePager(tabContainer, resultRecycler, groupedResults, tabs,
+            renderSearchSourcePager(tabContainer, resultContainer, groupedResults, tabs,
                     selected, activity, dialog, isTemplate3);
         }
     }
@@ -2747,7 +2735,7 @@ public class DanmakuUIHelper {
     }
 
     private static void renderSearchSourceTabs(LinearLayout tabContainer,
-                                               RecyclerView resultRecycler,
+                                               LinearLayout resultContainer,
                                                java.util.Map<String, List<DanmakuItem>> groupedResults,
                                                List<String> tabs,
                                                int selectedIndex,
@@ -2768,14 +2756,14 @@ public class DanmakuUIHelper {
             tabBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    renderSearchSourceSelector(tabContainer, resultRecycler, groupedResults, tabs,
+                    renderSearchSourceSelector(tabContainer, resultContainer, groupedResults, tabs,
                             targetIndex, activity, dialog, isTemplate3);
                 }
             });
             tabContainer.addView(tabBtn);
         }
 
-        showResultsForTab(resultRecycler, groupedResults.get(tabs.get(selected)), activity, dialog);
+        showResultsForTab(resultContainer, groupedResults.get(tabs.get(selected)), activity, dialog);
     }
 
     private static Button createSearchSourceTabButton(Activity activity, String text, boolean isActive, boolean isTemplate3) {
@@ -2820,7 +2808,7 @@ public class DanmakuUIHelper {
     }
 
     private static void renderSearchSourcePager(LinearLayout tabContainer,
-                                                RecyclerView resultRecycler,
+                                                LinearLayout resultContainer,
                                                 java.util.Map<String, List<DanmakuItem>> groupedResults,
                                                 List<String> tabs,
                                                 int selectedIndex,
@@ -2829,8 +2817,7 @@ public class DanmakuUIHelper {
                                                 boolean isTemplate3) {
         tabContainer.removeAllViews();
         if (tabs == null || tabs.isEmpty()) {
-            ResultAdapter adapter = (ResultAdapter) resultRecycler.getAdapter();
-            if (adapter != null) adapter.showMessage("该来源下无结果");
+            showResultsForTab(resultContainer, new ArrayList<>(), activity, dialog);
             return;
         }
 
@@ -2844,7 +2831,7 @@ public class DanmakuUIHelper {
             public void run() {
                 if (!canCycle) return;
                 int target = selected > 0 ? selected - 1 : tabs.size() - 1;
-                renderSearchSourceSelector(tabContainer, resultRecycler, groupedResults, tabs,
+                renderSearchSourceSelector(tabContainer, resultContainer, groupedResults, tabs,
                         target, activity, dialog, isTemplate3);
             }
         };
@@ -2854,7 +2841,7 @@ public class DanmakuUIHelper {
             public void run() {
                 if (!canCycle) return;
                 int target = selected < tabs.size() - 1 ? selected + 1 : 0;
-                renderSearchSourceSelector(tabContainer, resultRecycler, groupedResults, tabs,
+                renderSearchSourceSelector(tabContainer, resultContainer, groupedResults, tabs,
                         target, activity, dialog, isTemplate3);
             }
         };
@@ -2862,7 +2849,7 @@ public class DanmakuUIHelper {
         final Runnable chooseAction = new Runnable() {
             @Override
             public void run() {
-                showSearchSourceChooser(tabContainer, resultRecycler, groupedResults, tabs,
+                showSearchSourceChooser(tabContainer, resultContainer, groupedResults, tabs,
                         selected, activity, dialog, isTemplate3);
             }
         };
@@ -2886,7 +2873,7 @@ public class DanmakuUIHelper {
         tabContainer.addView(centerBtn, centerParams);
         tabContainer.addView(nextBtn, arrowParams);
 
-        showResultsForTab(resultRecycler, selectedItems, activity, dialog);
+        showResultsForTab(resultContainer, selectedItems, activity, dialog);
     }
 
     private static Button createSearchPagerArrowButton(Activity activity, String text, boolean isTemplate3, boolean enabled) {
@@ -2948,7 +2935,7 @@ public class DanmakuUIHelper {
     }
 
     private static void showSearchSourceChooser(LinearLayout tabContainer,
-                                                RecyclerView resultRecycler,
+                                                LinearLayout resultContainer,
                                                 java.util.Map<String, List<DanmakuItem>> groupedResults,
                                                 List<String> tabs,
                                                 int selectedIndex,
@@ -3010,7 +2997,7 @@ public class DanmakuUIHelper {
                 @Override
                 public void onClick(View v) {
                     chooserDialog.dismiss();
-                    renderSearchSourceSelector(tabContainer, resultRecycler, groupedResults, tabs,
+                    renderSearchSourceSelector(tabContainer, resultContainer, groupedResults, tabs,
                             targetIndex, activity, parentDialog, isTemplate3);
                 }
             });
@@ -3120,22 +3107,23 @@ public class DanmakuUIHelper {
     private static volatile boolean sUserInteracted = false;
     
     // 为指定页签显示结果
-    // 为指定页签显示结果（方案B：提交给虚拟化适配器）
-    private static void showResultsForTab(RecyclerView resultRecycler, List<DanmakuItem> items,
+    // 为指定页签显示结果（ScrollView 版：一次性建视图 + 软件渲染层规避 GPU 纹理上限）
+    private static void showResultsForTab(LinearLayout resultContainer, List<DanmakuItem> items,
                                           Activity activity, AlertDialog dialog) {
-        ResultAdapter adapter = (ResultAdapter) resultRecycler.getAdapter();
-        if (adapter == null) return;
-        adapter.bindDialog(dialog);
-
+        resultContainer.removeAllViews();
         currentItems = items;
         sUserInteracted = false;
 
         if (items == null || items.isEmpty()) {
-            adapter.showMessage("该来源下无结果");
+            TextView empty = new TextView(activity);
+            empty.setText("该来源下无结果");
+            empty.setGravity(Gravity.CENTER);
+            empty.setPadding(0, 20, 0, 20);
+            resultContainer.addView(empty);
             return;
         }
 
-        // 按 animeTitle 分组（与原逻辑一致）
+        // 按 animeTitle 分组（保持出现顺序）
         java.util.Map<String, List<DanmakuItem>> animeGroups = new java.util.LinkedHashMap<>();
         for (DanmakuItem item : items) {
             String animeTitle = item.animeTitle != null ? item.animeTitle : item.title;
@@ -3145,54 +3133,166 @@ public class DanmakuUIHelper {
             animeGroups.get(animeTitle).add(item);
         }
 
+        // 配置只读一次（焦点/点击时零读取）
+        DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
+        final boolean isTemplate3 = config.isDarkUI();
+        final boolean isMultiGrid = config.isMultiGridDanmakuStyle();
+        final boolean isLiquid = config.isLiquidDanmakuStyle();
+        final boolean useGrid = config.isGridDanmakuStyle() || isMultiGrid || isLiquid;
+
+        DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
+        int screenWidthDp = (int) (displayMetrics.widthPixels / displayMetrics.density);
+        final int gridColumns = (isMultiGrid || isLiquid) ? 3 : Math.max(3, screenWidthDp / 120);
+
         java.util.List<String> animeTitles = new java.util.ArrayList<>(animeGroups.keySet());
         sortAnimeTitlesByKeyword(animeTitles);
 
-        // 倒序统一在提交前处理（原逻辑在展开时 sortResults）
+        // 倒序统一在建视图前处理
         for (List<DanmakuItem> g : animeGroups.values()) {
             sortResults(g, isReversed);
         }
 
-        java.util.Map<String, List<DanmakuItem>> ordered = new java.util.LinkedHashMap<>();
-        for (String t : animeTitles) ordered.put(t, animeGroups.get(t));
+        final String lastUrl = DanmakuManager.lastDanmakuUrl;
+        final String[] highlightedDanmakuUrl = {lastUrl};
 
-        // 自动展开包含 lastDanmakuUrl 的组（超大组跳过，防一次几百个视图）
-        java.util.Set<String> autoExpand = new java.util.HashSet<>();
-        String lastUrl = DanmakuManager.lastDanmakuUrl;
-        if (!TextUtils.isEmpty(lastUrl)) {
-            for (String t : animeTitles) {
-                List<DanmakuItem> g = ordered.get(t);
-                for (DanmakuItem it : g) {
-                    if (lastUrl.equals(it.getDanmakuUrl())) {
-                        if (g.size() <= 120) autoExpand.add(t);
-                        break;
-                    }
+        for (int groupIndex = 0; groupIndex < animeTitles.size(); groupIndex++) {
+            final String animeTitle = animeTitles.get(groupIndex);
+            final List<DanmakuItem> animeItems = animeGroups.get(animeTitle);
+
+            // 列表模式单集组：直接出结果按钮，不套组头（沿用原逻辑）
+            if (!useGrid && animeItems.size() == 1) {
+                resultContainer.addView(createResultButton(activity, animeItems.get(0), dialog,
+                        isTemplate3, highlightedDanmakuUrl, null));
+                continue;
+            }
+
+            boolean foundLast = false;
+            if (!TextUtils.isEmpty(lastUrl)) {
+                for (DanmakuItem it : animeItems) {
+                    if (lastUrl.equals(it.getDanmakuUrl())) { foundLast = true; break; }
                 }
+            }
+            final boolean hasLastUrl = foundLast;
+
+            // ---- 组头按钮 ----
+            final Button groupBtn = new Button(activity);
+            groupBtn.setText(buildGroupHeaderTitle(animeTitle, animeItems.size(), false));
+            groupBtn.setPadding(dpToPx(activity, 20), dpToPx(activity, 12), dpToPx(activity, 20), dpToPx(activity, 12));
+            groupBtn.setTextSize(14);
+            groupBtn.setTypeface(null, android.graphics.Typeface.BOLD);
+            groupBtn.setGravity(Gravity.CENTER);
+            groupBtn.setFocusable(true);
+            groupBtn.setClickable(true);
+            LinearLayout.LayoutParams groupParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            groupParams.setMargins(0, dpToPx(activity, 6), 0, dpToPx(activity, 3));
+            groupBtn.setLayoutParams(groupParams);
+            applyGroupHeaderStyle(groupBtn, hasLastUrl, isTemplate3, isLiquid, false);
+
+            // 焦点监听：零配置读取、零反查
+            groupBtn.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) sUserInteracted = true;
+                applyGroupHeaderStyle((Button) v, hasFocus || hasLastUrl, isTemplate3, isLiquid, hasFocus);
+            });
+
+            final boolean[] expanded = {false};
+            final LinearLayout[] childRef = {null};
+            final View[] targetRef = {null};
+
+            groupBtn.setOnClickListener(v -> {
+                if (expanded[0]) {
+                    // 收起：焦点先安全回到组头，再移除子容器
+                    if (childRef[0] != null) {
+                        if (childRef[0].hasFocus()) groupBtn.requestFocus();
+                        resultContainer.removeView(childRef[0]);
+                        childRef[0] = null;
+                    }
+                    targetRef[0] = null;
+                    expanded[0] = false;
+                    groupBtn.setText(buildGroupHeaderTitle(animeTitle, animeItems.size(), false));
+                } else {
+                    // 展开：一次性建完所有集数按钮（无"加载更多"）
+                    int btnIndex = resultContainer.indexOfChild(groupBtn);
+                    LinearLayout childContainer = new LinearLayout(activity);
+                    childContainer.setOrientation(LinearLayout.VERTICAL);
+                    childContainer.setPadding(0, dpToPx(activity, 2), 0, dpToPx(activity, 2));
+                    childContainer.setBackgroundColor(Color.TRANSPARENT);
+                    LinearLayout.LayoutParams cParams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    cParams.setMargins(dpToPx(activity, 36), 0, dpToPx(activity, 36), 0);
+                    childContainer.setLayoutParams(cParams);
+                    childContainer.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+
+                    View target = null;
+                    if (useGrid) {
+                        GridLayout gridLayout = new GridLayout(activity);
+                        gridLayout.setColumnCount(gridColumns);
+                        gridLayout.setRowCount(GridLayout.UNDEFINED);
+                        gridLayout.setUseDefaultMargins(false);
+                        gridLayout.setPadding(0, dpToPx(activity, 8), 0, dpToPx(activity, 8));
+                        gridLayout.setBackgroundColor(Color.TRANSPARENT);
+                        for (DanmakuItem item : animeItems) {
+                            Button gridItem;
+                            if (isLiquid) {
+                                gridItem = createLiquidGridResultButton(activity, item, dialog);
+                            } else if (isMultiGrid) {
+                                gridItem = createMultiGridResultButton(activity, item, dialog);
+                            } else if (isTemplate3) {
+                                gridItem = createDarkGridResultButton(activity, item, dialog);
+                            } else {
+                                gridItem = createGridResultButton(activity, item, dialog);
+                            }
+                            gridLayout.addView(gridItem);
+                            if (target == null && !TextUtils.isEmpty(lastUrl)
+                                    && lastUrl.equals(item.getDanmakuUrl())) {
+                                target = gridItem;
+                            }
+                        }
+                        childContainer.addView(gridLayout);
+                    } else {
+                        for (DanmakuItem item : animeItems) {
+                            Button subItem = createResultButton(activity, item, dialog,
+                                    isTemplate3, highlightedDanmakuUrl, null);
+                            subItem.setPadding(dpToPx(activity, 14), dpToPx(activity, 8),
+                                    dpToPx(activity, 14), dpToPx(activity, 8));
+                            LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            subParams.setMargins(0, dpToPx(activity, 4), 0, dpToPx(activity, 4));
+                            subItem.setLayoutParams(subParams);
+                            childContainer.addView(subItem);
+                            if (target == null && !TextUtils.isEmpty(lastUrl)
+                                    && lastUrl.equals(item.getDanmakuUrl())) {
+                                target = subItem;
+                            }
+                        }
+                    }
+
+                    resultContainer.addView(childContainer, btnIndex + 1);
+                    childRef[0] = childContainer;
+                    targetRef[0] = target;
+                    expanded[0] = true;
+                    groupBtn.setText(buildGroupHeaderTitle(animeTitle, animeItems.size(), true));
+                }
+            });
+
+            resultContainer.addView(groupBtn);
+
+            // 自动展开包含 lastUrl 的组，并把焦点落到上次播放项（用户已操作则不抢）
+            if (hasLastUrl) {
+                groupBtn.postDelayed(() -> {
+                    if (!sUserInteracted) {
+                        groupBtn.performClick();
+                        resultContainer.postDelayed(() -> {
+                            if (!sUserInteracted && targetRef[0] != null) {
+                                targetRef[0].requestFocus();
+                            }
+                        }, 150);
+                    }
+                }, 50);
             }
         }
 
-        adapter.submit(ordered, autoExpand);
-
-        // 滚动 + 焦点落到上次播放项
-        int scrollPos = adapter.findPositionByUrl(lastUrl);
-        if (scrollPos < 0 && !animeTitles.isEmpty()) scrollPos = 0;
-        final int finalScrollPos = scrollPos;
-        if (finalScrollPos >= 0) {
-            resultRecycler.post(() -> {
-                resultRecycler.scrollToPosition(finalScrollPos);
-                resultRecycler.postDelayed(() -> {
-                    try {
-                        RecyclerView.ViewHolder vh =
-                                resultRecycler.findViewHolderForAdapterPosition(finalScrollPos);
-                        if (vh != null && vh.itemView instanceof ViewGroup
-                                && ((ViewGroup) vh.itemView).getChildCount() > 0) {
-                            ((ViewGroup) vh.itemView).getChildAt(0).requestFocus();
-                        }
-                    } catch (Throwable ignored) {
-                    }
-                }, 250);
-            });
-        }
+        resultContainer.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
     }
 
     private static String buildGroupHeaderTitle(String title, int count, boolean expanded) {
@@ -3595,6 +3695,7 @@ public class DanmakuUIHelper {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
+                    sUserInteracted = true;   // ← 防止自动聚焦抢焦点
                     // 获得焦点时的高亮效果 - 深绿色
                     v.setBackground(createRoundedBackgroundDrawable(TERTIARY_DARK));
                     ((Button) v).setTextColor(Color.WHITE);
@@ -3796,6 +3897,7 @@ public class DanmakuUIHelper {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
+                    sUserInteracted = true;   // ← 防止自动聚焦抢焦点
                     // 获得焦点时的高亮效果 - 深绿色
                     v.setBackground(createRoundedTransparentDrawable(DARK_TERTIARY_DARK));
                     ((Button) v).setTextColor(DARK_TEXT_PRIMARY);
@@ -3944,6 +4046,7 @@ public class DanmakuUIHelper {
 
         // 焦点效果
         resultItem.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) sUserInteracted = true;   // ← 防止自动聚焦抢焦点
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
@@ -4105,6 +4208,7 @@ public class DanmakuUIHelper {
         resultItem.setTag(item);
 
         resultItem.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) sUserInteracted = true;   // ← 防止自动聚焦抢焦点
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
@@ -4466,200 +4570,6 @@ public class DanmakuUIHelper {
         });
 
         return button;
-    }
-    
-    // ====================== 方案B：结果区虚拟化 ======================
-
-    private static class ResultRow {
-        static final int TYPE_HEADER = 0;
-        static final int TYPE_EPISODE = 1;
-        static final int TYPE_MESSAGE = 2;
-
-        final int type;
-        final String groupTitle;
-        final List<DanmakuItem> groupItems;
-        boolean expanded;
-        final DanmakuItem item;
-        final String message;
-
-        private ResultRow(int type, String groupTitle, List<DanmakuItem> groupItems,
-                          boolean expanded, DanmakuItem item, String message) {
-            this.type = type;
-            this.groupTitle = groupTitle;
-            this.groupItems = groupItems;
-            this.expanded = expanded;
-            this.item = item;
-            this.message = message;
-        }
-
-        static ResultRow header(String title, List<DanmakuItem> items, boolean expanded) {
-            return new ResultRow(TYPE_HEADER, title, items, expanded, null, null);
-        }
-
-        static ResultRow episode(DanmakuItem item) {
-            return new ResultRow(TYPE_EPISODE, null, null, false, item, null);
-        }
-
-        static ResultRow message(String msg) {
-            return new ResultRow(TYPE_MESSAGE, null, null, false, null, msg);
-        }
-    }
-
-    private static class ResultAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        private final Activity activity;
-        private final List<ResultRow> rows = new ArrayList<>();
-        private AlertDialog dialog;
-        private boolean isTemplate3, isMultiGrid, isLiquid, isGrid;
-
-        ResultAdapter(Activity activity) {
-            this.activity = activity;
-        }
-
-        void bindDialog(AlertDialog d) {
-            this.dialog = d;
-        }
-
-        void showMessage(String msg) {
-            rows.clear();
-            rows.add(ResultRow.message(msg));
-            notifyDataSetChanged();
-        }
-
-        void submit(java.util.Map<String, List<DanmakuItem>> orderedGroups,
-                    java.util.Set<String> autoExpandKeys) {
-            // 每次 submit 只读一次配置（焦点/绑定时零读取）
-            DanmakuConfig cfg = DanmakuConfigManager.getConfig(activity);
-            isTemplate3 = cfg.isDarkUI();
-            isMultiGrid = cfg.isMultiGridDanmakuStyle();
-            isLiquid = cfg.isLiquidDanmakuStyle();
-            isGrid = cfg.isGridDanmakuStyle() || isMultiGrid || isLiquid;
-
-            rows.clear();
-            for (java.util.Map.Entry<String, List<DanmakuItem>> e : orderedGroups.entrySet()) {
-                String title = e.getKey();
-                List<DanmakuItem> groupItems = e.getValue();
-                boolean expanded = autoExpandKeys != null && autoExpandKeys.contains(title);
-                if (!isGrid && groupItems.size() == 1) {
-                    rows.add(ResultRow.episode(groupItems.get(0)));   // 列表模式单集组直接出按钮
-                    continue;
-                }
-                rows.add(ResultRow.header(title, groupItems, expanded));
-                if (expanded) {
-                    for (DanmakuItem it : groupItems) rows.add(ResultRow.episode(it));
-                }
-            }
-            notifyDataSetChanged();
-        }
-
-        int findPositionByUrl(String url) {
-            if (TextUtils.isEmpty(url)) return -1;
-            for (int i = 0; i < rows.size(); i++) {
-                ResultRow r = rows.get(i);
-                if (r.type == ResultRow.TYPE_EPISODE && r.item != null
-                        && url.equals(r.item.getDanmakuUrl())) return i;
-            }
-            for (int i = 0; i < rows.size(); i++) {
-                ResultRow r = rows.get(i);
-                if (r.type == ResultRow.TYPE_HEADER) {
-                    for (DanmakuItem it : r.groupItems) {
-                        if (url.equals(it.getDanmakuUrl())) return i;
-                    }
-                }
-            }
-            return -1;
-        }
-
-        @Override
-        public int getItemCount() {
-            return rows.size();
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return rows.get(position).type;
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            FrameLayout box = new FrameLayout(activity);
-            box.setFocusable(false);
-            box.setClipChildren(false);
-            return new RecyclerView.ViewHolder(box) {
-            };
-        }
-
-        @Override
-        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            FrameLayout box = (FrameLayout) holder.itemView;
-            box.removeAllViews();
-            ResultRow row = rows.get(position);
-
-            if (row.type == ResultRow.TYPE_MESSAGE) {
-                TextView tv = new TextView(activity);
-                tv.setText(row.message);
-                tv.setGravity(Gravity.CENTER);
-                tv.setPadding(0, dpToPx(activity, 50), 0, dpToPx(activity, 50));
-                tv.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
-                box.addView(tv, new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                return;
-            }
-
-            if (row.type == ResultRow.TYPE_HEADER) {
-                Button header = new Button(activity);
-                header.setText(buildGroupHeaderTitle(row.groupTitle, row.groupItems.size(), row.expanded));
-                header.setGravity(Gravity.CENTER);
-                header.setTextSize(14);
-                header.setTypeface(null, android.graphics.Typeface.BOLD);
-                header.setAllCaps(false);
-                header.setFocusable(true);
-                header.setClickable(true);
-                applyGroupHeaderStyle(header, row.expanded, isTemplate3, isLiquid, false);
-                header.setOnFocusChangeListener((v, has) ->
-                        applyGroupHeaderStyle((Button) v, row.expanded, isTemplate3, isLiquid, has));
-                header.setOnClickListener(v -> toggleGroup(row));
-                box.addView(header, new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                return;
-            }
-
-            // TYPE_EPISODE
-            Button item;
-            if (isGrid) {
-                if (isLiquid) item = createLiquidGridResultButton(activity, row.item, dialog);
-                else if (isMultiGrid) item = createMultiGridResultButton(activity, row.item, dialog);
-                else if (isTemplate3) item = createDarkGridResultButton(activity, row.item, dialog);
-                else item = createGridResultButton(activity, row.item, dialog);
-            } else {
-                item = createResultButton(activity, row.item, dialog, isTemplate3, null, null);
-                item.setPadding(dpToPx(activity, 14), dpToPx(activity, 8),
-                        dpToPx(activity, 14), dpToPx(activity, 8));
-            }
-            // 工厂内部设的是 GridLayout/LinearLayout 参数，这里统一换成容器参数
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            int m = dpToPx(activity, 4);
-            lp.setMargins(m, m, m, m);
-            item.setLayoutParams(lp);
-            box.addView(item);
-        }
-
-        private void toggleGroup(ResultRow row) {
-            int idx = rows.indexOf(row);
-            if (idx < 0) return;
-            row.expanded = !row.expanded;
-            if (row.expanded) {
-                List<ResultRow> add = new ArrayList<>(row.groupItems.size());
-                for (DanmakuItem it : row.groupItems) add.add(ResultRow.episode(it));
-                rows.addAll(idx + 1, add);
-                notifyItemRangeInserted(idx + 1, add.size());
-            } else {
-                int count = row.groupItems.size();
-                rows.subList(idx + 1, idx + 1 + count).clear();
-                notifyItemRangeRemoved(idx + 1, count);
-            }
-            notifyItemChanged(idx);
-        }
     }
     
     // 颜色加深辅助方法
