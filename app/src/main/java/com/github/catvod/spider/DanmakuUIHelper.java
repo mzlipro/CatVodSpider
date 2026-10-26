@@ -26,6 +26,7 @@ import android.widget.LinearLayout;
 import android.content.DialogInterface;
 import android.widget.ScrollView;
 import android.widget.HorizontalScrollView;   // ← 新增这一行
+import android.widget.ListView;
 import android.widget.TextView;
 import com.github.catvod.spider.entity.DanmakuItem;
 import com.github.catvod.spider.danmu.SharedPreferencesService;
@@ -41,9 +42,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
-import android.widget.ListView;
-import android.widget.AbsListView;
 
 public class DanmakuUIHelper {
 
@@ -2328,18 +2326,17 @@ public class DanmakuUIHelper {
                     tabScroll.setLayoutParams(tabScrollParams);
                     mainLayout.addView(tabScroll);
     
-                    // ====== 结果区 ListView（纯SDK + 视图回收，焦点天然稳定）======
+                    // ====== 结果区 ListView（一行多列 + 视图回收，焦点天然稳定）======
                     ListView resultListView = new ListView(activity);
                     resultListView.setBackgroundColor((isTemplate3 || isLiquid) ? Color.TRANSPARENT : BACKGROUND_WHITE);
                     resultListView.setDivider(null);
                     resultListView.setDividerHeight(0);
                     resultListView.setCacheColorHint(Color.TRANSPARENT);
-                    resultListView.setItemsCanFocus(true);          // ← 关键：让子按钮能独立获焦
+                    resultListView.setItemsCanFocus(true);
                     resultListView.setClipToPadding(false);
                     resultListView.setPadding(0, dpToPx(activity, 10), 0, 0);
 
                     final ResultListAdapter resultAdapter = new ResultListAdapter(activity);
-
                     DanmakuConfig rcCfg = DanmakuConfigManager.getConfig(activity);
                     boolean rcMulti = rcCfg.isMultiGridDanmakuStyle();
                     boolean rcLiquid = rcCfg.isLiquidDanmakuStyle();
@@ -2349,8 +2346,6 @@ public class DanmakuUIHelper {
                             : (rcMulti || rcLiquid ? 3
                                     : Math.max(3, (int) (rdm.widthPixels / rdm.density) / 120));
                     resultAdapter.setGridColumns(gridColumns);
-                    resultAdapter.bindDialog(null);   // dialog 创建后再绑定
-
                     resultListView.setAdapter(resultAdapter);
 
                     LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
@@ -2387,7 +2382,7 @@ public class DanmakuUIHelper {
                     }
 
                     final AlertDialog dialog = builder.create();
-                    resultAdapter.bindDialog(dialog);   // ← 加这行新绑定
+                    resultAdapter.bindDialog(dialog);   // ← 结果按钮点击时要 dismiss
     
                     if (isTemplate3) {
                         dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
@@ -2431,7 +2426,9 @@ public class DanmakuUIHelper {
                                 DanmakuSpider.log("已清空搜索缓存: " + cacheKey);
                             }
     
-resultAdapter.showMessage("正在搜索: " + keyword);
+                            resultAdapter.showMessage("正在搜索: " + keyword);
+                            tabContainer.removeAllViews();
+                            tabContainer.setVisibility(View.GONE);
     
                             new Thread(new Runnable() {
                                 @Override
@@ -2451,12 +2448,12 @@ resultAdapter.showMessage("正在搜索: " + keyword);
     
                                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                                         @Override
-                                         public void run() {
+                                        public void run() {
                                             tabContainer.removeAllViews();
-
+    
                                             if (results.isEmpty()) {
                                                 tabContainer.setVisibility(View.GONE);
-resultAdapter.showMessage("未找到结果");
+                                                resultAdapter.showMessage("未找到结果");
                                                 return;
                                             }
     
@@ -2469,11 +2466,11 @@ resultAdapter.showMessage("未找到结果");
                                                 }
                                                 groupedResults.get(groupName).add(item);
                                             }
-
+    
                                             java.util.List<String> tabs = new java.util.ArrayList<>(groupedResults.keySet());
                                             java.util.Collections.sort(tabs);
-
-                                                                                        if (isModernPanel) {
+    
+                                            if (isModernPanel) {
                                                 int selectedTabIndex = findInitialSearchTabIndex(tabs, groupedResults);
                                                 renderSearchSourceSelector(tabContainer, resultListView, groupedResults, tabs,
                                                         selectedTabIndex, activity, dialog, isTemplate3);
@@ -2481,13 +2478,13 @@ resultAdapter.showMessage("未找到结果");
                                                 renderLegacySearchSourceTabs(tabContainer, resultListView, groupedResults, tabs,
                                                         activity, dialog, isTemplate3);
                                             }
-                                        }          // ← 1. 关 Handler.post 的 run()
-                                    });            // ← 2. 关 Handler.post
-                                }                  // ← 3. 关 Thread 的 run()
-                            }).start();            // ← 4. 关 Thread 并 start
-                        }                          // ← 5. 关 searchBtn 的 onClick
-                    });                            // ← 6. 关 searchBtn.setOnClickListener
-
+                                        }
+                                    });
+                                }
+                            }).start();
+                        }
+                    });
+    
                     safeShowDialog(activity, dialog);
     
                     // ====== 液态模式：开启窗口模糊 + 透明背景 ======
@@ -2576,7 +2573,7 @@ resultAdapter.showMessage("未找到结果");
             Button tabBtn;
             boolean isLiquidTab = DanmakuConfigManager.getConfig(activity).isLiquidDanmakuStyle();
             if (isLiquidTab) {
-                tabBtn = createLiquidMenuButton(activity, tabName);
+                tabBtn = createLiquidMenuButton(activity, tabName);  // 液态专用按钮
             } else if (isTemplate3) {
                 tabBtn = createDarkSolidButton(activity, tabName, DARK_PRIMARY_COLOR);
             } else {
@@ -2611,6 +2608,7 @@ resultAdapter.showMessage("未找到结果");
                         }
                         return;
                     }
+                    // 原有逻辑
                     if (isTemplate3) {
                         ((Button) v).setTextColor(hasFocus ? Color.WHITE : DARK_TEXT_PRIMARY);
                         v.setBackground(createRoundedTransparentDrawable(hasFocus ? 0xFFFF6B00 :
@@ -3109,7 +3107,7 @@ resultAdapter.showMessage("未找到结果");
     private static volatile boolean sUserInteracted = false;
     
     // 为指定页签显示结果
-    // 为指定页签显示结果（ListView 版：虚拟化 + 视图回收，焦点天然稳定）
+    // 为指定页签显示结果（ListView 版：一行多列 + 视图回收）
     private static void showResultsForTab(ListView resultListView, List<DanmakuItem> items,
                                           Activity activity, AlertDialog dialog) {
         ResultListAdapter adapter = (ResultListAdapter) resultListView.getAdapter();
@@ -3124,7 +3122,7 @@ resultAdapter.showMessage("未找到结果");
             return;
         }
 
-        // 按 animeTitle 分组
+        // 按 animeTitle 分组（保持出现顺序）
         java.util.Map<String, List<DanmakuItem>> animeGroups = new java.util.LinkedHashMap<>();
         for (DanmakuItem item : items) {
             String animeTitle = item.animeTitle != null ? item.animeTitle : item.title;
@@ -3134,9 +3132,16 @@ resultAdapter.showMessage("未找到结果");
             animeGroups.get(animeTitle).add(item);
         }
 
+        // 配置只读一次
+        DanmakuConfig config = DanmakuConfigManager.getConfig(activity);
+        boolean isGrid = config.isGridDanmakuStyle()
+                || config.isMultiGridDanmakuStyle()
+                || config.isLiquidDanmakuStyle();
+
         java.util.List<String> animeTitles = new java.util.ArrayList<>(animeGroups.keySet());
         sortAnimeTitlesByKeyword(animeTitles);
 
+        // 倒序统一在提交前处理
         for (List<DanmakuItem> g : animeGroups.values()) {
             sortResults(g, isReversed);
         }
@@ -3171,10 +3176,8 @@ resultAdapter.showMessage("未找到结果");
                     try {
                         View v = resultListView.getChildAt(
                                 finalPos - resultListView.getFirstVisiblePosition());
-                        if (v != null) {
-                            View target = (v instanceof Button) ? v
-                                    : (v instanceof ViewGroup && ((ViewGroup) v).getChildCount() > 0
-                                       ? ((ViewGroup) v).getChildAt(0) : v);
+                        if (v instanceof ViewGroup && ((ViewGroup) v).getChildCount() > 0) {
+                            View target = ((ViewGroup) v).getChildAt(0);
                             if (!sUserInteracted) target.requestFocus();
                         }
                     } catch (Throwable ignored) {}
@@ -3245,8 +3248,6 @@ resultAdapter.showMessage("未找到结果");
             button.setBackground(createRoundedStrokeBackgroundDrawable(fillColor, strokeColor, strokeWidth));
         }
     }
-
-
 
     private static void sortResults(List<DanmakuItem> results, boolean reversed) {
         // 不做自定义排序，保持接口返回的原始顺序
@@ -3583,7 +3584,7 @@ resultAdapter.showMessage("未找到结果");
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
-                    sUserInteracted = true;   // ← 防止自动聚焦抢焦点
+                    sUserInteracted = true;   // ← 加这行
                     // 获得焦点时的高亮效果 - 深绿色
                     v.setBackground(createRoundedBackgroundDrawable(TERTIARY_DARK));
                     ((Button) v).setTextColor(Color.WHITE);
@@ -3785,7 +3786,7 @@ resultAdapter.showMessage("未找到结果");
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
-                    sUserInteracted = true;   // ← 防止自动聚焦抢焦点
+                    sUserInteracted = true;   // ← 加这行
                     // 获得焦点时的高亮效果 - 深绿色
                     v.setBackground(createRoundedTransparentDrawable(DARK_TERTIARY_DARK));
                     ((Button) v).setTextColor(DARK_TEXT_PRIMARY);
@@ -3934,7 +3935,7 @@ resultAdapter.showMessage("未找到结果");
 
         // 焦点效果
         resultItem.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) sUserInteracted = true;   // ← 防止自动聚焦抢焦点
+            if (hasFocus) sUserInteracted = true;   // ← 加这行
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
@@ -4096,7 +4097,7 @@ resultAdapter.showMessage("未找到结果");
         resultItem.setTag(item);
 
         resultItem.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) sUserInteracted = true;   // ← 防止自动聚焦抢焦点
+            if (hasFocus) sUserInteracted = true;   // ← 加这行
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
@@ -4471,7 +4472,7 @@ resultAdapter.showMessage("未找到结果");
         final String groupTitle;
         final List<DanmakuItem> groupItems;
         boolean expanded;
-        final List<DanmakuItem> rowItems;   // 一行多个集数
+        final List<DanmakuItem> rowItems;
         final String message;
 
         private ResultRow(int type, String groupTitle, List<DanmakuItem> groupItems,
@@ -4535,7 +4536,6 @@ resultAdapter.showMessage("未找到结果");
                 String title = e.getKey();
                 List<DanmakuItem> groupItems = e.getValue();
                 boolean expanded = autoExpandKeys != null && autoExpandKeys.contains(title);
-
                 if (!isGrid && groupItems.size() == 1) {
                     rows.add(ResultRow.gridRow(new ArrayList<>(groupItems)));
                     continue;
@@ -4548,7 +4548,6 @@ resultAdapter.showMessage("未找到结果");
             notifyDataSetChanged();
         }
 
-        /** 把一组集数按 gridColumns 切成多行 */
         private void addGridRows(List<DanmakuItem> items) {
             for (int i = 0; i < items.size(); i += gridColumns) {
                 rows.add(ResultRow.gridRow(new ArrayList<>(items.subList(
@@ -4595,7 +4594,6 @@ resultAdapter.showMessage("未找到结果");
             return getGridRowView(row, convertView);
         }
 
-        // ---- 消息行 ----
         private View getMessageView(ResultRow row, View convertView) {
             TextView tv = (convertView instanceof TextView) ? (TextView) convertView : new TextView(activity);
             tv.setText(row.message);
@@ -4605,11 +4603,11 @@ resultAdapter.showMessage("未找到结果");
             return tv;
         }
 
-        // ---- 分组头（整行一个按钮） ----
         private View getHeaderView(ResultRow row, View convertView) {
             LinearLayout wrapper;
             Button header;
-            if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 1
+            if (convertView instanceof LinearLayout
+                    && ((LinearLayout) convertView).getChildCount() == 1
                     && ((LinearLayout) convertView).getChildAt(0) instanceof Button) {
                 wrapper = (LinearLayout) convertView;
                 header = (Button) wrapper.getChildAt(0);
@@ -4638,7 +4636,6 @@ resultAdapter.showMessage("未找到结果");
             return wrapper;
         }
 
-        // ---- 集数行（一行 gridColumns 个按钮） ----
         private View getGridRowView(ResultRow row, View convertView) {
             LinearLayout rowLayout;
             if (convertView instanceof LinearLayout
@@ -4649,12 +4646,11 @@ resultAdapter.showMessage("未找到结果");
                 rowLayout = new LinearLayout(activity);
                 rowLayout.setOrientation(LinearLayout.HORIZONTAL);
                 rowLayout.setFocusable(false);
-                rowLayout.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
             }
 
             for (DanmakuItem item : row.rowItems) {
                 Button btn = createEpisodeButton(item);
-                // 宽度用 weight=1 实现等分（列表模式 gridColumns=1 时也是满宽）
+                // 关键：工厂设的是 GridLayout 参数，这里换成 LinearLayout 等分参数
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
                 int m = dpToPx(activity, 4);
@@ -4665,24 +4661,14 @@ resultAdapter.showMessage("未找到结果");
             return rowLayout;
         }
 
-        // ---- 用工厂方法创建集数按钮 ----
         private Button createEpisodeButton(DanmakuItem item) {
-            Button btn;
-            if (isLiquid) {
-                btn = createLiquidGridResultButton(activity, item, dialog);
-            } else if (isMultiGrid) {
-                btn = createMultiGridResultButton(activity, item, dialog);
-            } else if (isTemplate3 && isGrid) {
-                btn = createDarkGridResultButton(activity, item, dialog);
-            } else if (isGrid) {
-                btn = createGridResultButton(activity, item, dialog);
-            } else {
-                btn = createResultButton(activity, item, dialog, isTemplate3, null, null);
-            }
-            return btn;
+            if (isLiquid) return createLiquidGridResultButton(activity, item, dialog);
+            if (isMultiGrid) return createMultiGridResultButton(activity, item, dialog);
+            if (isTemplate3 && isGrid) return createDarkGridResultButton(activity, item, dialog);
+            if (isGrid) return createGridResultButton(activity, item, dialog);
+            return createResultButton(activity, item, dialog, isTemplate3, null, null);
         }
 
-        // ---- 展开/收起分组 ----
         private void toggleGroup(ResultRow row) {
             int idx = rows.indexOf(row);
             if (idx < 0) return;
