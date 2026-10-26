@@ -3099,12 +3099,15 @@ public class DanmakuUIHelper {
         });
     }
 
-
+    /** 用户是否已开始操作（用于抑制自动 requestFocus 抢焦点） */
+    private static volatile boolean sUserInteracted = false;
+    
     // 为指定页签显示结果
     private static void showResultsForTab(LinearLayout resultContainer, List<DanmakuItem> items,
                                           Activity activity, AlertDialog dialog) {
         resultContainer.removeAllViews();
         currentItems = items;
+        sUserInteracted = false;   // ← 新增
 
         if (items == null || items.isEmpty()) {
             TextView empty = new TextView(activity);
@@ -3140,11 +3143,13 @@ public class DanmakuUIHelper {
             }
         }
 
+
         // 用于跟踪当前选中的分组按钮
         final java.util.Map<String, Button> groupButtons = new java.util.HashMap<>();
         final java.util.List<Button> resultButtons = new java.util.ArrayList<>();
         final String[] highlightedDanmakuUrl = new String[]{DanmakuManager.lastDanmakuUrl};
         final boolean[] suppressGroupSelectionClear = new boolean[]{false};
+        final boolean[] userInteracted = new boolean[]{false};   // ← 新增
         java.util.List<String> animeTitles = new java.util.ArrayList<>(animeGroups.keySet());
         sortAnimeTitlesByKeyword(animeTitles);
 
@@ -3172,7 +3177,7 @@ public class DanmakuUIHelper {
                 groupParams.setMargins(0, dpToPx(activity, 6), 0, dpToPx(activity, 3));
                 groupBtn.setLayoutParams(groupParams);
 
-                applyGroupHeaderStyle(groupBtn, groupsWithLastUrl.contains(animeTitle), isTemplate3, false);
+                applyGroupHeaderStyle(groupBtn, groupsWithLastUrl.contains(animeTitle), isTemplate3, isLiquid, false);
 
                 groupBtn.setClickable(true);
                 groupBtn.setFocusable(true);
@@ -3185,21 +3190,10 @@ public class DanmakuUIHelper {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
                         Button button = (Button) v;
-                        String title = null;
-
-                        // 找到对应的标题
-                        for (java.util.Map.Entry<String, Button> entry : groupButtons.entrySet()) {
-                            if (entry.getValue() == v) {
-                                title = entry.getKey();
-                                break;
-                            }
-                        }
-
                         if (hasFocus) {
-                            applyGroupHeaderStyle(button, true, isTemplate3, true);
+                            applyGroupHeaderStyle(button, true, isTemplate3, isLiquid, true);
                         } else {
-                            // 失去焦点时，恢复到原始选中状态颜色
-                            applyGroupHeaderStyle(button, groupsWithLastUrl.contains(title), isTemplate3, false);
+                            applyGroupHeaderStyle(button, groupsWithLastUrl.contains(animeTitle), isTemplate3, isLiquid, false);
                         }
                     }
                 });
@@ -3214,13 +3208,17 @@ public class DanmakuUIHelper {
                     public void onClick(View v) {
                         // 点击时更新选中状态
                         for (java.util.Map.Entry<String, Button> entry : groupButtons.entrySet()) {
+                            applyGroupHeaderStyle(entry.getValue(), entry.getValue() == v, isTemplate3, isLiquid, false);
+                        }
+                        groupsWithLastUrl.clear();
+                        groupsWithLastUrl.add(animeTitle);
                             Button otherBtn = entry.getValue();
                             if (otherBtn == v) {
-                                applyGroupHeaderStyle(otherBtn, true, isTemplate3, false);
+                                applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
                                 groupsWithLastUrl.clear();
                                 groupsWithLastUrl.add(entry.getKey());
                             } else {
-                                applyGroupHeaderStyle(otherBtn, false, isTemplate3, false);
+                                applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
                             }
                         }
 
@@ -3229,9 +3227,13 @@ public class DanmakuUIHelper {
                         GridLayout gridContainer = (GridLayout) currentStateInfo[2];
 
                         if (isExpanded) {
-                            // 收起内容
+                            // 收起内容（先把焦点交还组头，避免焦点所在的 View 被移除后焦点乱跑）
                             int groupBtnIndex = resultContainer.indexOfChild(groupBtn);
                             if (groupBtnIndex + 1 < resultContainer.getChildCount()) {
+                                View toRemove = resultContainer.getChildAt(groupBtnIndex + 1);
+                                if (toRemove != null && toRemove.hasFocus()) {
+                                    groupBtn.requestFocus();
+                                }
                                 resultContainer.removeViewAt(groupBtnIndex + 1);
                             }
 
@@ -3319,8 +3321,7 @@ public class DanmakuUIHelper {
                                             View child = gridContainer.getChildAt(i);
                                             if (child instanceof Button && child.getTag() instanceof DanmakuItem) {
                                                 DanmakuItem item = (DanmakuItem) child.getTag();
-                                                if (item.getDanmakuUrl() != null &&
-                                                        item.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl)) {
+                                                if (item.getDanmakuUrl() != null && !sUserInteracted) {
                                                     // 请求焦点
                                                     child.requestFocus();
                                                     break;
@@ -3356,7 +3357,7 @@ public class DanmakuUIHelper {
                     groupParams.setMargins(0, dpToPx(activity, 6), 0, dpToPx(activity, 3));
                     groupBtn.setLayoutParams(groupParams);
 
-                    applyGroupHeaderStyle(groupBtn, groupsWithLastUrl.contains(animeTitle), isTemplate3, false);
+                    applyGroupHeaderStyle(groupBtn, groupsWithLastUrl.contains(animeTitle), isTemplate3, isLiquid, false);
 
                     groupBtn.setClickable(true);
                     groupBtn.setFocusable(true);
@@ -3367,19 +3368,10 @@ public class DanmakuUIHelper {
                         @Override
                         public void onFocusChange(View v, boolean hasFocus) {
                             Button button = (Button) v;
-                            String title = null;
-
-                            for (java.util.Map.Entry<String, Button> entry : groupButtons.entrySet()) {
-                                if (entry.getValue() == v) {
-                                    title = entry.getKey();
-                                    break;
-                                }
-                            }
-
                             if (hasFocus) {
-                                applyGroupHeaderStyle(button, true, isTemplate3, true);
+                                applyGroupHeaderStyle(button, true, isTemplate3, isLiquid, true);
                             } else {
-                                applyGroupHeaderStyle(button, groupsWithLastUrl.contains(title), isTemplate3, false);
+                                applyGroupHeaderStyle(button, groupsWithLastUrl.contains(animeTitle), isTemplate3, isLiquid, false);
                             }
                         }
                     });
@@ -3395,13 +3387,17 @@ public class DanmakuUIHelper {
                                 refreshResultButtonStyles(resultButtons, highlightedDanmakuUrl[0], isTemplate3);
                             }
                             for (java.util.Map.Entry<String, Button> entry : groupButtons.entrySet()) {
+                                applyGroupHeaderStyle(entry.getValue(), entry.getValue() == v, isTemplate3, isLiquid, false);
+                            }
+                            groupsWithLastUrl.clear();
+                            groupsWithLastUrl.add(animeTitle);
                                 Button otherBtn = entry.getValue();
                                 if (otherBtn == v) {
-                                    applyGroupHeaderStyle(otherBtn, true, isTemplate3, false);
+                                    applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
                                     groupsWithLastUrl.clear();
                                     groupsWithLastUrl.add(entry.getKey());
                                 } else {
-                                    applyGroupHeaderStyle(otherBtn, false, isTemplate3, false);
+                                    applyGroupHeaderStyle(otherBtn, otherBtn == v, isTemplate3, isLiquid, false);
                                 }
                             }
 
@@ -3411,6 +3407,9 @@ public class DanmakuUIHelper {
                             if (isExpanded) {
                                 View childContainer = (View) currentStateInfo[1];
                                 if (childContainer != null) {
+                                    if (childContainer.hasFocus()) {
+                                        groupBtn.requestFocus();   // ← 焦点先安全落到组头
+                                    }
                                     resultContainer.removeView(childContainer);
                                 }
                                 currentStateInfo[0] = 0;
@@ -3458,13 +3457,17 @@ public class DanmakuUIHelper {
                                 Object[] expandedState = (Object[]) groupBtn.getTag();
                                 View expandedContainer = expandedState[1] instanceof View ? (View) expandedState[1] : resultContainer;
                                 View targetView = findResultButtonByDanmakuUrl(expandedContainer, DanmakuManager.lastDanmakuUrl);
-                                if (targetView != null) targetView.requestFocus();
+
+                                // ====== 只有用户还没操作时才自动抢焦点 ======
+                                if (targetView != null && !sUserInteracted) {
+                                    targetView.requestFocus();
+                                }
 
                                 if (resultContainer.getParent() instanceof ScrollView) {
                                     ScrollView scrollView = (ScrollView) resultContainer.getParent();
                                     View finalTargetView = targetView;
                                     scrollView.post(() -> {
-                                        if (finalTargetView != null) {
+                                        if (finalTargetView != null && !sUserInteracted) {
                                             int scrollY = resultContainer.getTop() + getTopRelativeToAncestor(finalTargetView, resultContainer);
                                             scrollView.smoothScrollTo(0, scrollY);
                                         } else {
@@ -3487,48 +3490,47 @@ public class DanmakuUIHelper {
         return (expanded ? "[-] " : "[+] ") + title + " (" + count + "集)";
     }
 
-    private static void applyGroupHeaderStyle(Button button, boolean active, boolean isTemplate3, boolean focused) {
-        // ====== 液态模式分支 ======
-        if (button.getContext() instanceof Activity) {
-            DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
-            if (cfg.isLiquidDanmakuStyle()) {
-                boolean isDarkL = cfg.isDarkMode();
-                android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-                bg.setCornerRadius(dpToPx(button.getContext(), 12));
-                if (focused) {
-                    if (isDarkL) {
-                        bg.setColors(new int[]{0xCC4E342E, 0x99FF9800});
-                        bg.setStroke(dpToPx(button.getContext(), 3), 0xFFFF6B00);
-                        button.setTextColor(0xFFFFB74D);
-                    } else {
-                        bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800});
-                        bg.setStroke(dpToPx(button.getContext(), 3), 0xFFFF6B00);
-                        button.setTextColor(0xFFE65100);
-                    }
-                } else if (active) {
-                    if (isDarkL) {
-                        bg.setColors(new int[]{0x881A237E, 0x553F51B5});
-                        bg.setStroke(dpToPx(button.getContext(), 2), 0xFF00E5FF);
-                        button.setTextColor(0xFF80DEEA);
-                    } else {
-                        bg.setColors(new int[]{0x88E3F2FD, 0x5590CAF9});
-                        bg.setStroke(dpToPx(button.getContext(), 2), 0xFF2196F3);
-                        button.setTextColor(0xFF1565C0);
-                    }
+    private static void applyGroupHeaderStyle(Button button, boolean active, boolean isTemplate3, boolean isLiquid, boolean focused) {
+        Context ctx = button.getContext();
+
+        // ====== 液态模式分支（不再 getConfig）======
+        if (isLiquid) {
+            boolean isDarkL = isTemplate3;   // 深色状态就是 isTemplate3（isDarkUI）
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setCornerRadius(dpToPx(ctx, 12));
+            if (focused) {
+                if (isDarkL) {
+                    bg.setColors(new int[]{0xCC4E342E, 0x99FF9800});
+                    bg.setStroke(dpToPx(ctx, 3), 0xFFFF6B00);
+                    button.setTextColor(0xFFFFB74D);
                 } else {
-                    if (isDarkL) {
-                        bg.setColors(new int[]{0x66303040, 0x44303040});
-                        bg.setStroke(dpToPx(button.getContext(), 2), 0x66FFFFFF);
-                        button.setTextColor(0xDDCCCCCC);
-                    } else {
-                        bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
-                        bg.setStroke(dpToPx(button.getContext(), 2), 0x99AAAAAA);
-                        button.setTextColor(0xDD222222);
-                    }
+                    bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800});
+                    bg.setStroke(dpToPx(ctx, 3), 0xFFFF6B00);
+                    button.setTextColor(0xFFE65100);
                 }
-                button.setBackground(bg);
-                return;
+            } else if (active) {
+                if (isDarkL) {
+                    bg.setColors(new int[]{0x881A237E, 0x553F51B5});
+                    bg.setStroke(dpToPx(ctx, 2), 0xFF00E5FF);
+                    button.setTextColor(0xFF80DEEA);
+                } else {
+                    bg.setColors(new int[]{0x88E3F2FD, 0x5590CAF9});
+                    bg.setStroke(dpToPx(ctx, 2), 0xFF2196F3);
+                    button.setTextColor(0xFF1565C0);
+                }
+            } else {
+                if (isDarkL) {
+                    bg.setColors(new int[]{0x66303040, 0x44303040});
+                    bg.setStroke(dpToPx(ctx, 2), 0x66FFFFFF);
+                    button.setTextColor(0xDDCCCCCC);
+                } else {
+                    bg.setColors(new int[]{0x66FFFFFF, 0x44FFFFFF});
+                    bg.setStroke(dpToPx(ctx, 2), 0x99AAAAAA);
+                    button.setTextColor(0xDD222222);
+                }
             }
+            button.setBackground(bg);
+            return;
         }
 
         // ====== 原有逻辑不变 ======
@@ -3756,12 +3758,25 @@ public class DanmakuUIHelper {
 
     private static void refreshResultButtonStyles(List<Button> buttons, String highlightedUrl, boolean isTemplate3) {
         if (buttons == null) return;
+        // ====== 缓存三个状态的 Drawable，避免全量重建 ======
+        android.graphics.drawable.Drawable selectedBg = createRoundedStrokeBackgroundDrawable(
+                isTemplate3 ? DARK_TERTIARY_COLOR : 0xFFEAF8EF, TERTIARY_COLOR, 2);
+        android.graphics.drawable.Drawable normalBg = createRoundedStrokeBackgroundDrawable(
+                isTemplate3 ? DARK_BG_TERTIARY : 0xFFF0F0F0,
+                isTemplate3 ? DARK_BORDER : 0xFFD6D6D6, 2);
+
         for (Button button : buttons) {
             if (button == null || !(button.getTag() instanceof DanmakuItem)) continue;
             DanmakuItem item = (DanmakuItem) button.getTag();
             String itemUrl = item.getDanmakuUrl();
             boolean selected = !TextUtils.isEmpty(highlightedUrl) && highlightedUrl.equals(itemUrl);
-            applyResultButtonStyle(button, selected, isTemplate3, button.hasFocus());
+            if (selected) {
+                button.setBackground(selectedBg);
+                button.setTextColor(isTemplate3 ? DARK_TEXT_PRIMARY : 0xFF1F7A3A);
+            } else {
+                button.setBackground(normalBg);
+                button.setTextColor(isTemplate3 ? DARK_TEXT_PRIMARY : TEXT_PRIMARY);
+            }
         }
     }
 
@@ -3804,6 +3819,7 @@ public class DanmakuUIHelper {
                 boolean isCurrentlySelected = danmakuUrl != null && danmakuUrl.equals(highlightedUrl);
 
                 if (hasFocus) {
+                   sUserInteracted = true;   // ← 新增
                     applyResultButtonStyle((Button) v, isCurrentlySelected, isTemplate3, true);
                 } else {
                     applyResultButtonStyle((Button) v, isCurrentlySelected, isTemplate3, false);
@@ -4197,6 +4213,9 @@ public class DanmakuUIHelper {
      * 多格模式专用按钮：一行3个，文字可换行，显示完整标题
      */
     private static Button createMultiGridResultButton(Activity activity, DanmakuItem item, AlertDialog dialog) {
+        // ====== 性能/焦点优化：创建时读一次配置，焦点监听里不再读 ======
+        final boolean isDarkCached = DanmakuConfigManager.getConfig(activity).isDarkUI();
+        
         Button resultItem = new Button(activity);
         resultItem.setFocusable(true);
         resultItem.setFocusableInTouchMode(true);
@@ -4218,6 +4237,7 @@ public class DanmakuUIHelper {
         resultItem.setTextSize(12);
         resultItem.setSingleLine(false);            // 允许多行换行
         resultItem.setMaxLines(3);                  // 最多3行
+        resultItem.setMinHeight(dpToPx(activity, 44));   // ← 所有格子等高，焦点几何关系恒定
         resultItem.setEllipsize(TextUtils.TruncateAt.END);
         resultItem.setGravity(Gravity.CENTER);      // 居中显示
 
@@ -4234,7 +4254,7 @@ public class DanmakuUIHelper {
         String currentDanmakuUrl = item.getDanmakuUrl();
         boolean isHighlighted = currentDanmakuUrl != null
                 && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
-        applyMultiGridResultStyle(resultItem, isHighlighted, false);
+        applyMultiGridResultStyle(resultItem, isDarkCached, isHighlighted, false);   // ← 加参数
 
         // ====== 关键改动：高度自适应，不再固定64dp ======
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
@@ -4256,9 +4276,8 @@ public class DanmakuUIHelper {
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
-            applyMultiGridResultStyle((Button) v, highlight, hasFocus);
-            v.setScaleX(hasFocus ? 1.03f : 1.0f);
-            v.setScaleY(hasFocus ? 1.03f : 1.0f);
+            applyMultiGridResultStyle((Button) v, isDarkCached, highlight, hasFocus);
+            // 去掉 setScaleX/setScaleY，避免缩放引起行高/位置变化
         });
 
         // 点击
@@ -4283,16 +4302,8 @@ public class DanmakuUIHelper {
      * 多格模式按钮样式 - 支持深色模式
      * 焦点橙色，推送中绿色，普通灰色
      */
-    private static void applyMultiGridResultStyle(Button button, boolean highlighted, boolean focused) {
-        // 获取深色模式状态
-        boolean isDark = false;
-        if (button.getContext() instanceof Activity) {
-            DanmakuConfig cfg = DanmakuConfigManager.getConfig(button.getContext());
-            isDark = cfg.isDarkUI();
-        }
-
+    private static void applyMultiGridResultStyle(Button button, boolean isDark, boolean highlighted, boolean focused) {
         if (isDark) {
-            // ====== 深色模式配色 ======
             if (focused) {
                 button.setBackground(createRoundedStrokeBackgroundDrawable(0x44FFE0B2, 0xFFFF6B00, 3));
                 button.setTextColor(0xFFFFB74D);
@@ -4304,7 +4315,6 @@ public class DanmakuUIHelper {
                 button.setTextColor(0xFFCCCCCC);
             }
         } else {
-            // ====== 浅色模式配色（原有） ======
             if (focused) {
                 button.setBackground(createRoundedStrokeBackgroundDrawable(0xFFE8F5E9, TERTIARY_DARK, 3));
                 button.setTextColor(TERTIARY_DARK);
@@ -4369,6 +4379,9 @@ public class DanmakuUIHelper {
      * 创建液态玻璃集数按钮（真液态版）
      */
     private static Button createLiquidGridResultButton(Activity activity, DanmakuItem item, AlertDialog dialog) {
+        // ====== 性能/焦点优化：创建时读一次 ======
+        final boolean isDarkCached = DanmakuConfigManager.getConfig(activity).isDarkMode();
+        
         Button resultItem = new Button(activity);
         resultItem.setFocusable(true);
         resultItem.setFocusableInTouchMode(true);
@@ -4390,6 +4403,7 @@ public class DanmakuUIHelper {
         resultItem.setTextSize(12);
         resultItem.setSingleLine(false);
         resultItem.setMaxLines(3);
+        resultItem.setMinHeight(dpToPx(activity, 44));   // ← 所有格子等高，焦点几何关系恒定
         resultItem.setEllipsize(TextUtils.TruncateAt.END);
         resultItem.setGravity(Gravity.CENTER);
 
@@ -4403,7 +4417,7 @@ public class DanmakuUIHelper {
         String currentDanmakuUrl = item.getDanmakuUrl();
         boolean isHighlighted = currentDanmakuUrl != null
                 && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
-        applyLiquidResultStyle(activity, resultItem, isHighlighted, false);
+        applyLiquidResultStyle(activity, isDarkCached, resultItem, isHighlighted, false);
 
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
         params.height = GridLayout.LayoutParams.WRAP_CONTENT;
@@ -4423,9 +4437,8 @@ public class DanmakuUIHelper {
             DanmakuItem tagged = (DanmakuItem) v.getTag();
             boolean highlight = tagged.getDanmakuUrl() != null
                     && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
-            applyLiquidResultStyle(activity, (Button) v, highlight, hasFocus);
-            v.setScaleX(hasFocus ? 1.05f : 1.0f);
-            v.setScaleY(hasFocus ? 1.05f : 1.0f);
+            applyLiquidResultStyle(activity, isDarkCached, (Button) v, highlight, hasFocus);
+            // 去掉 setScaleX/setScaleY
         });
 
         resultItem.setOnClickListener(v -> {
@@ -4450,13 +4463,11 @@ public class DanmakuUIHelper {
     /**
      * 液态模式按钮样式：支持深浅模式
      */
-    private static void applyLiquidResultStyle(Activity activity, Button button, boolean highlighted, boolean focused) {
-        boolean isDark = DanmakuConfigManager.getConfig(activity).isDarkMode();
+    private static void applyLiquidResultStyle(Activity activity, boolean isDark, Button button, boolean highlighted, boolean focused) {
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(dpToPx(activity, 12));
 
         if (isDark) {
-            // ====== 深色模式 ======
             if (focused) {
                 bg.setColors(new int[]{0xCC4E342E, 0x99FF9800, 0xCC4E342E});
                 bg.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
@@ -4471,7 +4482,6 @@ public class DanmakuUIHelper {
                 button.setTextColor(0xDDCCCCCC);
             }
         } else {
-            // ====== 浅色模式 ======
             if (focused) {
                 bg.setColors(new int[]{0xCCFFE0B2, 0x99FF9800, 0xCCFFE0B2});
                 bg.setStroke(dpToPx(activity, 3), 0xFFFF6B00);
