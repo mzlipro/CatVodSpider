@@ -3887,7 +3887,7 @@ public class DanmakuUIHelper {
             // 在Android 7.0 (API 24) 及以上版本使用权重实现等宽
             params.width = 0;
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         } else {
             // 在旧版本上使用固定宽度，以兼容旧版GridLayout
             params.width = dpToPx(activity, 80); // 约4个字符宽度
@@ -4088,7 +4088,7 @@ public class DanmakuUIHelper {
             // 在Android 7.0 (API 24) 及以上版本使用权重实现等宽
             params.width = 0;
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         } else {
             // 在旧版本上使用固定宽度，以兼容旧版GridLayout
             params.width = dpToPx(activity, 80); // 约4个字符宽度
@@ -4242,7 +4242,7 @@ public class DanmakuUIHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             params.width = 0;
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         } else {
             params.width = dpToPx(activity, 100);
         }
@@ -4404,7 +4404,7 @@ public class DanmakuUIHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             params.width = 0;
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         } else {
             params.width = dpToPx(activity, 100);
         }
