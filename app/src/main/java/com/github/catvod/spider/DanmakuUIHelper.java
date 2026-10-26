@@ -2349,7 +2349,7 @@ public class DanmakuUIHelper {
                             : (rcMulti || rcLiquid ? 3
                                     : Math.max(3, (int) (rdm.widthPixels / rdm.density) / 120));
                     resultAdapter.setGridColumns(gridColumns);
-                    resultAdapter.bindDialog(dialog == null ? null : dialog);  // 稍后重新绑定
+                    resultAdapter.bindDialog(null);   // dialog 创建后再绑定
 
                     resultListView.setAdapter(resultAdapter);
 
@@ -2387,7 +2387,7 @@ public class DanmakuUIHelper {
                     }
 
                     final AlertDialog dialog = builder.create();
-                    resultAdapter.bindDialog(dialog);   // ← 补绑定
+                    resultAdapter.bindDialog(dialog);   // ← 加这行新绑定
     
                     if (isTemplate3) {
                         dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
@@ -4618,10 +4618,12 @@ resultAdapter.showMessage("未找到结果");
             }
 
             if (row.type == ResultRow.TYPE_HEADER) {
-                LinearLayout wrapper = (convertView instanceof LinearLayout
-                        && convertView.getChildCount() == 1
-                        && convertView.getChildAt(0) instanceof Button)
-                        ? (LinearLayout) convertView : null;
+                LinearLayout wrapper = null;
+                if (convertView instanceof LinearLayout
+                        && ((LinearLayout) convertView).getChildCount() == 1
+                        && ((LinearLayout) convertView).getChildAt(0) instanceof Button) {
+                    wrapper = (LinearLayout) convertView;
+                }
                 Button header;
                 if (wrapper == null) {
                     wrapper = new LinearLayout(activity);
@@ -4652,9 +4654,11 @@ resultAdapter.showMessage("未找到结果");
             }
 
             // TYPE_EPISODE
-            LinearLayout itemWrapper = (convertView instanceof LinearLayout
-                    && convertView.getChildCount() == 1)
-                    ? (LinearLayout) convertView : null;
+            LinearLayout itemWrapper = null;
+            if (convertView instanceof LinearLayout
+                    && ((LinearLayout) convertView).getChildCount() == 1) {
+                itemWrapper = (LinearLayout) convertView;
+            }
             Button btn;
             if (itemWrapper == null) {
                 itemWrapper = new LinearLayout(activity);
