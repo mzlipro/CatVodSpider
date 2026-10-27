@@ -3537,26 +3537,6 @@ public class DanmakuUIHelper {
             resultItem.setTextColor(TEXT_PRIMARY);
         }
 
-        // 设置网格布局参数
-        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.height = GridLayout.LayoutParams.WRAP_CONTENT; // 高度自适应
-
-        // 兼容安卓7.0以下版本
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            // 在Android 7.0 (API 24) 及以上版本使用权重实现等宽
-            params.width = 0;
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        } else {
-            // 在旧版本上使用固定宽度，以兼容旧版GridLayout
-            params.width = dpToPx(activity, 80); // 约4个字符宽度
-        }
-
-        // 设置外边距
-        int margin = dpToPx(activity, 6);
-        params.setMargins(margin, margin, margin, margin);
-
-        resultItem.setLayoutParams(params);
         resultItem.setTag(item);
 
         resultItem.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -3731,26 +3711,6 @@ public class DanmakuUIHelper {
             resultItem.setTextColor(DARK_TEXT_PRIMARY);
         }
 
-        // 设置网格布局参数
-        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.height = GridLayout.LayoutParams.WRAP_CONTENT; // 高度自适应
-
-        // 兼容安卓7.0以下版本
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            // 在Android 7.0 (API 24) 及以上版本使用权重实现等宽
-            params.width = 0;
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        } else {
-            // 在旧版本上使用固定宽度，以兼容旧版GridLayout
-            params.width = dpToPx(activity, 80); // 约4个字符宽度
-        }
-
-        // 设置外边距
-        int margin = dpToPx(activity, 6);
-        params.setMargins(margin, margin, margin, margin);
-
-        resultItem.setLayoutParams(params);
         resultItem.setTag(item);
 
         resultItem.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -3875,19 +3835,6 @@ public class DanmakuUIHelper {
                 && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
         applyMultiGridResultStyle(resultItem, isDarkCached, isHighlighted, false);   // ← 加参数
 
-        // ====== 关键改动：高度自适应，不再固定64dp ======
-        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.height = GridLayout.LayoutParams.WRAP_CONTENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            params.width = 0;
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        } else {
-            params.width = dpToPx(activity, 100);
-        }
-        int margin = dpToPx(activity, 4);
-        params.setMargins(margin, margin, margin, margin);
-        resultItem.setLayoutParams(params);
         resultItem.setTag(item);
 
         // 焦点效果
@@ -4039,18 +3986,6 @@ public class DanmakuUIHelper {
                 && currentDanmakuUrl.equals(DanmakuManager.lastDanmakuUrl);
         applyLiquidResultStyle(activity, isDarkCached, resultItem, isHighlighted, false);
 
-        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-        params.height = GridLayout.LayoutParams.WRAP_CONTENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            params.width = 0;
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            // params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        } else {
-            params.width = dpToPx(activity, 100);
-        }
-        int margin = dpToPx(activity, 4);
-        params.setMargins(margin, margin, margin, margin);
-        resultItem.setLayoutParams(params);
         resultItem.setTag(item);
 
         resultItem.setOnFocusChangeListener((v, hasFocus) -> {
@@ -4591,22 +4526,33 @@ public class DanmakuUIHelper {
             if (convertView instanceof LinearLayout
                     && ((LinearLayout) convertView).getOrientation() == LinearLayout.HORIZONTAL) {
                 rowLayout = (LinearLayout) convertView;
-                rowLayout.removeAllViews();
+                // 不再 removeAllViews()，而是复用已有按钮
             } else {
                 rowLayout = new LinearLayout(activity);
                 rowLayout.setOrientation(LinearLayout.HORIZONTAL);
                 rowLayout.setFocusable(false);
             }
 
-            for (DanmakuItem item : row.rowItems) {
-                Button btn = createEpisodeButton(item);
-                // 关键：工厂设的是 GridLayout 参数，这里换成 LinearLayout 等分参数
+            // 确保按钮数量与 rowItems 匹配（复用已有按钮，不足则新建，多余则隐藏）
+            while (rowLayout.getChildCount() < row.rowItems.size()) {
+                Button btn = createEpisodeButton(row.rowItems.get(rowLayout.getChildCount()));
+                // 清掉工厂设的 GridLayout.LayoutParams，换成 LinearLayout 等分
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
                 int m = dpToPx(activity, 4);
                 lp.setMargins(m, m, m, m);
                 btn.setLayoutParams(lp);
                 rowLayout.addView(btn);
+            }
+            // 多余的按钮隐藏（不删除，避免触发焦点丢失）
+            for (int i = 0; i < rowLayout.getChildCount(); i++) {
+                View child = rowLayout.getChildAt(i);
+                if (i < row.rowItems.size()) {
+                    child.setVisibility(View.VISIBLE);
+                    rebindEpisodeButton((Button) child, row.rowItems.get(i));
+                } else {
+                    child.setVisibility(View.GONE);
+                }
             }
             return rowLayout;
         }
@@ -4617,6 +4563,78 @@ public class DanmakuUIHelper {
             if (isTemplate3 && isGrid) return createDarkGridResultButton(activity, item, dialog);
             if (isGrid) return createGridResultButton(activity, item, dialog);
             return createResultButton(activity, item, dialog, isTemplate3, null, null);
+        }
+        
+        // 复用已有按钮，只更新内容和样式（不重建 listener，不 removeAllViews）
+        private void rebindEpisodeButton(Button btn, DanmakuItem item) {
+            btn.setTag(item);
+
+            // 更新文本
+            if (isGrid) {
+                String displayText = DanmakuScanner.extractEpisodeNum(item.epTitle);
+                if (TextUtils.isEmpty(displayText)) {
+                    String[] parts = item.epTitle != null ? item.epTitle.split(" ") : new String[0];
+                    displayText = parts.length > 1 ? parts[1] : (parts.length > 0 ? parts[0]
+                            : (item.epTitle != null ? item.epTitle : "未知"));
+                }
+                btn.setText(displayText);
+            } else {
+                btn.setText(buildResultTitleWithSource(activity, item));
+            }
+
+            // 更新高亮样式
+            boolean isHighlighted = item.getDanmakuUrl() != null
+                    && item.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
+            if (isMultiGrid) {
+                applyMultiGridResultStyle(btn, isTemplate3, isHighlighted, btn.hasFocus());
+            } else if (isLiquid) {
+                applyLiquidResultStyle(activity, isTemplate3, btn, isHighlighted, btn.hasFocus());
+            } else if (isTemplate3 && isGrid) {
+                btn.setBackground(createRoundedTransparentDrawable(
+                        btn.hasFocus() ? DARK_TERTIARY_DARK : (isHighlighted ? DARK_TERTIARY_COLOR : DARK_BG_TERTIARY)));
+                btn.setTextColor(DARK_TEXT_PRIMARY);
+            } else if (isGrid) {
+                btn.setBackground(createRoundedBackgroundDrawable(
+                        btn.hasFocus() ? TERTIARY_DARK : (isHighlighted ? TERTIARY_COLOR : 0xFFF0F0F0)));
+                btn.setTextColor(btn.hasFocus() || isHighlighted ? Color.WHITE : TEXT_PRIMARY);
+            } else {
+                applyResultButtonStyle(btn, isHighlighted, isTemplate3, btn.hasFocus());
+            }
+
+            // 更新点击/长按/焦点监听（替换旧的，避免闭包持有旧 item）
+            btn.setOnClickListener(v -> {
+                sUserInteracted = true;
+                DanmakuItem selected = (DanmakuItem) v.getTag();
+                DanmakuSpider.recordDanmakuUrl(selected, false);
+                LeoDanmakuService.pushDanmakuDirect(selected, activity, false);
+                if (dialog != null) dialog.dismiss();
+            });
+            btn.setOnLongClickListener(v -> {
+                DanmakuItem tagged = (DanmakuItem) v.getTag();
+                Utils.safeShowToast(activity, buildResultTitleWithSource(activity, tagged), true);
+                return true;
+            });
+            btn.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) sUserInteracted = true;
+                DanmakuItem tagged = (DanmakuItem) v.getTag();
+                boolean hl = tagged.getDanmakuUrl() != null
+                        && tagged.getDanmakuUrl().equals(DanmakuManager.lastDanmakuUrl);
+                if (isMultiGrid) {
+                    applyMultiGridResultStyle((Button) v, isTemplate3, hl, hasFocus);
+                } else if (isLiquid) {
+                    applyLiquidResultStyle(activity, isTemplate3, (Button) v, hl, hasFocus);
+                } else if (isTemplate3 && isGrid) {
+                    ((Button) v).setBackground(createRoundedTransparentDrawable(
+                            hasFocus ? DARK_TERTIARY_DARK : (hl ? DARK_TERTIARY_COLOR : DARK_BG_TERTIARY)));
+                    ((Button) v).setTextColor(DARK_TEXT_PRIMARY);
+                } else if (isGrid) {
+                    ((Button) v).setBackground(createRoundedBackgroundDrawable(
+                            hasFocus ? TERTIARY_DARK : (hl ? TERTIARY_COLOR : 0xFFF0F0F0)));
+                    ((Button) v).setTextColor(hasFocus || hl ? Color.WHITE : TEXT_PRIMARY);
+                } else {
+                    applyResultButtonStyle((Button) v, hl, isTemplate3, hasFocus);
+                }
+            });
         }
 
         private void toggleGroup(ResultRow row) {
