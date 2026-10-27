@@ -4598,8 +4598,8 @@ public class DanmakuUIHelper {
             TextView tv = (convertView instanceof TextView) ? (TextView) convertView : new TextView(activity);
             tv.setText(row.message);
             tv.setGravity(Gravity.CENTER);
-            tv.setPadding(0, dpToPx(activity, 50), 0, dpToPx(activity, 50));
-            tv.setTextColor(isTemplate3 ? DARK_TEXT_SECONDARY : TEXT_SECONDARY);
+            tv.setPadding(0, dpToPx(activity, 12), 0, dpToPx(activity, 12));
+            tv.setTextColor(isTemplate3 ? DARK_TEXT_PRIMARY : TEXT_PRIMARY);
             return tv;
         }
 
