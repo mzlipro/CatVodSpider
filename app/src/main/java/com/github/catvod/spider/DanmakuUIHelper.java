@@ -453,8 +453,8 @@ public class DanmakuUIHelper {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
                     DanmakuConfig glassCfg = DanmakuConfigManager.getConfig(activity);
-                    liquidRoot.setDarkMode(config.isDarkMode());  // ← 加上
-                    liquidRoot.setGlassAlpha(config.getLpLiquidAlpha());
+                    liquidRoot.setDarkMode(glassCfg.isDarkMode());
+                    liquidRoot.setGlassAlpha(glassCfg.getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -791,8 +791,8 @@ public class DanmakuUIHelper {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
                     DanmakuConfig glassCfg = DanmakuConfigManager.getConfig(activity);
-                    liquidRoot.setDarkMode(config.isDarkMode());  // ← 加上
-                    liquidRoot.setGlassAlpha(config.getLpLiquidAlpha());
+                    liquidRoot.setDarkMode(glassCfg.isDarkMode());
+                    liquidRoot.setGlassAlpha(glassCfg.getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -2049,8 +2049,8 @@ public class DanmakuUIHelper {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
                     DanmakuConfig glassCfg = DanmakuConfigManager.getConfig(activity);
-                    liquidRoot.setDarkMode(config.isDarkMode());  // ← 加上
-                    liquidRoot.setGlassAlpha(config.getLpLiquidAlpha());
+                    liquidRoot.setDarkMode(glassCfg.isDarkMode());
+                    liquidRoot.setGlassAlpha(glassCfg.getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
@@ -3628,8 +3628,8 @@ public class DanmakuUIHelper {
                     LiquidGlassView liquidRoot = new LiquidGlassView(activity);
                     liquidRoot.setBlurRadius(18f);
                     DanmakuConfig glassCfg = DanmakuConfigManager.getConfig(activity);
-                    liquidRoot.setDarkMode(config.isDarkMode());  // ← 加上
-                    liquidRoot.setGlassAlpha(config.getLpLiquidAlpha());
+                    liquidRoot.setDarkMode(glassCfg.isDarkMode());
+                    liquidRoot.setGlassAlpha(glassCfg.getLpLiquidAlpha());
                     liquidRoot.setCornerRadius(24f);
                     mainLayout.setBackgroundColor(Color.TRANSPARENT);
                     liquidRoot.addView(mainLayout, new ViewGroup.LayoutParams(
