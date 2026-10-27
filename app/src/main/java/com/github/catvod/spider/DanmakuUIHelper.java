@@ -4522,17 +4522,11 @@ public class DanmakuUIHelper {
         }
 
         private View getGridRowView(ResultRow row, View convertView) {
-            LinearLayout rowLayout;
-            if (convertView instanceof LinearLayout
-                    && ((LinearLayout) convertView).getOrientation() == LinearLayout.HORIZONTAL) {
-                rowLayout = (LinearLayout) convertView;
-                rowLayout.removeAllViews();   // ← 恢复第一份的做法：清空重建
-            } else {
-                rowLayout = new LinearLayout(activity);
-                rowLayout.setOrientation(LinearLayout.HORIZONTAL);
-                rowLayout.setFocusable(false);
-                rowLayout.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-            }
+            // 不复用 convertView：每次新建，避免 removeAllViews 干扰焦点搜索
+            LinearLayout rowLayout = new LinearLayout(activity);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setFocusable(false);
+            rowLayout.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
             for (DanmakuItem item : row.rowItems) {
                 Button btn = createEpisodeButton(item);
